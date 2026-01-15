@@ -1,0 +1,23 @@
+{
+  "name": "mirapuri-stats",
+  "version": "0.0.1",
+  "private": true,
+  "description": "FF14 glamour combination statistics tool",
+  "type": "module",
+  "scripts": {
+    "dev:scraper": "pnpm --filter @mirapuri/scraper dev",
+    "build:scraper": "pnpm --filter @mirapuri/scraper build",
+    "test": "pnpm -r test",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.11"
+  }
+}
