@@ -24,7 +24,7 @@ export interface SyncResult {
  * 進捗情報
  */
 export interface SyncProgress {
-  phase: 'items' | 'usage' | 'pairs';
+  phase: 'items' | 'usage' | 'pairs' | 'cleanup';
   processed: number;
   total: number;
   errors: number;

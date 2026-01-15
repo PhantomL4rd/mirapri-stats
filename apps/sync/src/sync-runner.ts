@@ -25,6 +25,15 @@ export async function runSync(
     errors: [],
   };
 
+  // 全完了チェック（dry-run 以外）
+  if (!options.dryRun) {
+    const isComplete = await aggregator.isCrawlComplete();
+    if (!isComplete) {
+      result.errors.push('Scraper not finished yet, skipping sync');
+      return result;
+    }
+  }
+
   // Items sync
   if (!options.statsOnly) {
     const items = await aggregator.extractUniqueItems();
@@ -95,6 +104,25 @@ export async function runSync(
         progress.errors++;
         onProgress?.(progress);
       }
+    }
+  }
+
+  // Cleanup (sync 成功時のみ、dry-run 以外)
+  if (!options.dryRun && result.errors.length === 0) {
+    const progress: SyncProgress = {
+      phase: 'cleanup',
+      processed: 0,
+      total: 3,
+      errors: 0,
+    };
+    try {
+      await aggregator.cleanup();
+      progress.processed = 3;
+      onProgress?.(progress);
+    } catch (error) {
+      result.errors.push(`Cleanup failed: ${(error as Error).message}`);
+      progress.errors++;
+      onProgress?.(progress);
     }
   }
 

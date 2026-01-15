@@ -1,5 +1,6 @@
 import {
   charactersGlamour,
+  crawlProgress,
   itemsCache,
   SLOT_PAIR_CONFIG,
   SLOT_PAIRS,
@@ -18,6 +19,10 @@ export interface Aggregator {
   extractUniqueItems(): Promise<ExtractedItem[]>;
   aggregateUsage(): Promise<AggregatedUsage[]>;
   aggregatePairs(): Promise<AggregatedPair[]>;
+  /** scraper が全完了しているか確認 */
+  isCrawlComplete(): Promise<boolean>;
+  /** Supabase のデータをクリーンアップ（sync 成功後に呼び出し） */
+  cleanup(): Promise<void>;
 }
 
 /**
@@ -73,6 +78,32 @@ export function createAggregator(deps: AggregatorDependencies): Aggregator {
       }
 
       return allPairs;
+    },
+
+    /**
+     * scraper が全完了しているか確認
+     * crawl_progress の lastCompletedIndex が totalKeys - 1 以上なら完了
+     */
+    async isCrawlComplete(): Promise<boolean> {
+      const result = await db.select().from(crawlProgress).limit(1);
+
+      if (result.length === 0) {
+        // 進捗レコードがない = まだ開始していない
+        return false;
+      }
+
+      const progress = result[0]!.progress;
+      return progress.lastCompletedIndex >= progress.totalKeys - 1;
+    },
+
+    /**
+     * Supabase のデータをクリーンアップ
+     * characters_glamour, items_cache, crawl_progress を削除
+     */
+    async cleanup(): Promise<void> {
+      await db.delete(charactersGlamour);
+      await db.delete(itemsCache);
+      await db.delete(crawlProgress);
     },
   };
 }

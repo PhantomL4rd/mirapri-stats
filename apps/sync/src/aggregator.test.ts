@@ -188,4 +188,64 @@ describe('Aggregator', () => {
       expect(headBodyResults[9]!.rank).toBe(10);
     });
   });
+
+  describe('isCrawlComplete', () => {
+    it('進捗が完了していればtrueを返す', async () => {
+      const mockSelect = vi.fn(() => ({
+        from: vi.fn(() => ({
+          limit: vi.fn().mockResolvedValue([
+            { progress: { lastCompletedIndex: 99, totalKeys: 100, processedCharacters: 1000 } },
+          ]),
+        })),
+      }));
+      const mockDb = { select: mockSelect } as unknown as AggregatorDependencies['db'];
+
+      const aggregator = createAggregator({ db: mockDb });
+      const result = await aggregator.isCrawlComplete();
+
+      expect(result).toBe(true);
+    });
+
+    it('進捗が未完了ならfalseを返す', async () => {
+      const mockSelect = vi.fn(() => ({
+        from: vi.fn(() => ({
+          limit: vi.fn().mockResolvedValue([
+            { progress: { lastCompletedIndex: 50, totalKeys: 100, processedCharacters: 500 } },
+          ]),
+        })),
+      }));
+      const mockDb = { select: mockSelect } as unknown as AggregatorDependencies['db'];
+
+      const aggregator = createAggregator({ db: mockDb });
+      const result = await aggregator.isCrawlComplete();
+
+      expect(result).toBe(false);
+    });
+
+    it('進捗レコードがなければfalseを返す', async () => {
+      const mockSelect = vi.fn(() => ({
+        from: vi.fn(() => ({
+          limit: vi.fn().mockResolvedValue([]),
+        })),
+      }));
+      const mockDb = { select: mockSelect } as unknown as AggregatorDependencies['db'];
+
+      const aggregator = createAggregator({ db: mockDb });
+      const result = await aggregator.isCrawlComplete();
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('cleanup', () => {
+    it('3つのテーブルを削除する', async () => {
+      const mockDelete = vi.fn().mockResolvedValue(undefined);
+      const mockDb = { delete: mockDelete } as unknown as AggregatorDependencies['db'];
+
+      const aggregator = createAggregator({ db: mockDb });
+      await aggregator.cleanup();
+
+      expect(mockDelete).toHaveBeenCalledTimes(3);
+    });
+  });
 });

@@ -25,6 +25,8 @@ describe('runSync', () => {
       aggregatePairs: vi.fn().mockResolvedValue([
         { slotPair: 'head-body', itemIdA: 'item1', itemIdB: 'item2', pairCount: 10, rank: 1 },
       ]),
+      isCrawlComplete: vi.fn().mockResolvedValue(true),
+      cleanup: vi.fn().mockResolvedValue(undefined),
     };
 
     mockClient = {
@@ -185,17 +187,18 @@ describe('runSync', () => {
   });
 
   describe('進捗コールバック', () => {
-    it('各フェーズの進捗を通知する', async () => {
+    it('各フェーズの進捗を通知する（cleanup含む）', async () => {
       await runSync(deps, {
         itemsOnly: false,
         statsOnly: false,
         dryRun: false,
       });
 
-      expect(progressLogs).toHaveLength(3);
+      expect(progressLogs).toHaveLength(4);
       expect(progressLogs[0]).toContain('[items]');
       expect(progressLogs[1]).toContain('[usage]');
       expect(progressLogs[2]).toContain('[pairs]');
+      expect(progressLogs[3]).toContain('[cleanup]');
     });
 
     it('dry-run時は進捗を通知しない', async () => {
@@ -206,6 +209,70 @@ describe('runSync', () => {
       });
 
       expect(progressLogs).toHaveLength(0);
+    });
+  });
+
+  describe('全完了チェック', () => {
+    it('scraper未完了時はスキップする', async () => {
+      vi.mocked(mockAggregator.isCrawlComplete).mockResolvedValue(false);
+
+      const result = await runSync(deps, {
+        itemsOnly: false,
+        statsOnly: false,
+        dryRun: false,
+      });
+
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toContain('Scraper not finished yet');
+      expect(mockClient.postItems).not.toHaveBeenCalled();
+      expect(mockAggregator.cleanup).not.toHaveBeenCalled();
+    });
+
+    it('dry-run時は全完了チェックをスキップする', async () => {
+      vi.mocked(mockAggregator.isCrawlComplete).mockResolvedValue(false);
+
+      const result = await runSync(deps, {
+        itemsOnly: false,
+        statsOnly: false,
+        dryRun: true,
+      });
+
+      expect(result.errors).toHaveLength(0);
+      expect(mockAggregator.isCrawlComplete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('クリーンアップ', () => {
+    it('sync成功後にcleanupを実行する', async () => {
+      await runSync(deps, {
+        itemsOnly: false,
+        statsOnly: false,
+        dryRun: false,
+      });
+
+      expect(mockAggregator.cleanup).toHaveBeenCalled();
+    });
+
+    it('エラーがある場合はcleanupをスキップする', async () => {
+      vi.mocked(mockClient.postItems).mockRejectedValue(new Error('Error'));
+
+      await runSync(deps, {
+        itemsOnly: false,
+        statsOnly: false,
+        dryRun: false,
+      });
+
+      expect(mockAggregator.cleanup).not.toHaveBeenCalled();
+    });
+
+    it('dry-run時はcleanupをスキップする', async () => {
+      await runSync(deps, {
+        itemsOnly: false,
+        statsOnly: false,
+        dryRun: true,
+      });
+
+      expect(mockAggregator.cleanup).not.toHaveBeenCalled();
     });
   });
 });
