@@ -15,10 +15,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Install flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+        with:
+          version: latest
 
       - name: Build and push image
-        run: fly deploy --build-only --push
+        run: flyctl deploy --build-only --push
         working-directory: apps/scraper
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
