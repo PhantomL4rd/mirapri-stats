@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm';
 import type { GlamourData, RepositoryResult } from '@mirapuri/shared';
 import { charactersGlamour, SLOT_IDS } from '@mirapuri/shared/schema';
 import type { Database } from '@mirapuri/shared/db';
@@ -14,6 +15,13 @@ export interface GlamourRepository {
    * @returns 保存結果
    */
   saveGlamourData(characterId: string, glamourData: GlamourData[]): Promise<RepositoryResult>;
+
+  /**
+   * キャラクターが既にDBに存在するかチェック
+   * @param characterId LodestoneキャラクターID
+   * @returns 存在すればtrue
+   */
+  characterExists(characterId: string): Promise<boolean>;
 }
 
 /**
@@ -67,6 +75,22 @@ export function createGlamourRepository(db: Database): GlamourRepository {
           error: message,
         });
         return { success: false, insertedCount: 0, error: message };
+      }
+    },
+
+    async characterExists(characterId: string): Promise<boolean> {
+      try {
+        const rows = await db
+          .select({ id: charactersGlamour.id })
+          .from(charactersGlamour)
+          .where(eq(charactersGlamour.characterId, characterId))
+          .limit(1);
+
+        return rows.length > 0;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown database error';
+        logger.error('キャラクター存在チェックエラー', { characterId, error: message });
+        return false;
       }
     },
   };
