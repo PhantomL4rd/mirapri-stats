@@ -1,6 +1,25 @@
 import type { HttpClient } from './http-client';
 
 /**
+ * デフォルトの最大リトライ回数
+ */
+const DEFAULT_MAX_RETRIES = 3;
+
+/**
+ * デフォルトのリトライ待機時間（ミリ秒）
+ * 429エラー時のクールダウンを考慮
+ */
+const DEFAULT_RETRY_DELAY_MS = 60000;
+
+/**
+ * リトライ対象のHTTPステータスコード
+ * - 429: Too Many Requests
+ * - 503: Service Unavailable
+ * - 0: ネットワークエラー
+ */
+const DEFAULT_RETRYABLE_STATUS_CODES = [429, 503, 0] as const;
+
+/**
  * リトライ設定
  */
 export interface RetryConfig {
@@ -16,9 +35,9 @@ export interface RetryConfig {
  * デフォルトのリトライ設定
  */
 export const DEFAULT_RETRY_CONFIG: RetryConfig = {
-  maxRetries: 3,
-  retryDelayMs: 60000, // 60秒
-  retryableStatusCodes: [429, 503, 0], // 429: Too Many Requests, 503: Service Unavailable, 0: Network Error
+  maxRetries: DEFAULT_MAX_RETRIES,
+  retryDelayMs: DEFAULT_RETRY_DELAY_MS,
+  retryableStatusCodes: [...DEFAULT_RETRYABLE_STATUS_CODES],
 };
 
 /**

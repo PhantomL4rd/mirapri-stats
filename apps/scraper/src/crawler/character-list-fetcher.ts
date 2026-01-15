@@ -3,6 +3,12 @@ import type { HttpClient } from '../utils/http-client';
 import { buildSearchUrl, type SearchKey } from './search-key-generator';
 
 /**
+ * デフォルトの最低レベル閾値
+ * FF14のレベルキャップ（カンスト）を基準に、アクティブプレイヤーを対象とする
+ */
+const DEFAULT_MIN_LEVEL = 100;
+
+/**
  * キャラクター一覧取得設定
  */
 export interface CharacterListFetcherConfig {
@@ -14,7 +20,7 @@ export interface CharacterListFetcherConfig {
  * デフォルト設定
  */
 const DEFAULT_CONFIG: CharacterListFetcherConfig = {
-  minLevel: 100,
+  minLevel: DEFAULT_MIN_LEVEL,
 };
 
 /**

@@ -11,6 +11,18 @@ import { count, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { AggregatedPair, AggregatedUsage, ExtractedItem } from './types.js';
 
+/**
+ * プライバシー保護のための最小カウント閾値
+ * この人数未満のデータは集計結果に含めない（個人特定防止）
+ */
+const MIN_COUNT_THRESHOLD = 3;
+
+/**
+ * ペアランキングの上位件数
+ * 各アイテムに対して、組み合わせ相手の上位N件を保存
+ */
+const TOP_PAIRS_LIMIT = 10;
+
 export interface AggregatorDependencies {
   db: PostgresJsDatabase<typeof schema>;
 }
@@ -49,6 +61,7 @@ export function createAggregator(deps: AggregatorDependencies): Aggregator {
 
     /**
      * アイテムごとの使用回数を集計
+     * プライバシー保護のため、3人以上使用しているアイテムのみ返す
      */
     async aggregateUsage(): Promise<AggregatedUsage[]> {
       const result = await db
@@ -57,7 +70,8 @@ export function createAggregator(deps: AggregatorDependencies): Aggregator {
           usageCount: count(),
         })
         .from(charactersGlamour)
-        .groupBy(charactersGlamour.itemId);
+        .groupBy(charactersGlamour.itemId)
+        .having(sql`count(*) >= ${MIN_COUNT_THRESHOLD}`);
 
       return result.map((row) => ({
         itemId: row.itemId,
@@ -110,6 +124,7 @@ export function createAggregator(deps: AggregatorDependencies): Aggregator {
 
 /**
  * 特定のスロットペアに対するペア集計
+ * プライバシー保護のため、3人以上の組み合わせのみ返す
  */
 async function aggregatePairForSlot(
   db: PostgresJsDatabase<typeof schema>,
@@ -118,6 +133,7 @@ async function aggregatePairForSlot(
   slotIdB: number,
 ): Promise<AggregatedPair[]> {
   // 同一キャラクターの slotA と slotB の装備を結合してペアをカウント
+  // pair_count >= 3 でフィルタリング（プライバシー保護）
   const result = await db.execute(sql`
     WITH pairs AS (
       SELECT
@@ -129,6 +145,7 @@ async function aggregatePairForSlot(
       WHERE a.slot_id = ${slotIdA}
         AND b.slot_id = ${slotIdB}
       GROUP BY a.item_id, b.item_id
+      HAVING COUNT(*) >= ${MIN_COUNT_THRESHOLD}
     ),
     ranked AS (
       SELECT
@@ -140,7 +157,7 @@ async function aggregatePairForSlot(
     )
     SELECT item_id_a, item_id_b, pair_count, rank
     FROM ranked
-    WHERE rank <= 10
+    WHERE rank <= ${TOP_PAIRS_LIMIT}
     ORDER BY item_id_a, rank
   `);
 

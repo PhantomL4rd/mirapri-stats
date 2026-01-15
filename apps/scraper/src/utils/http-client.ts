@@ -1,6 +1,12 @@
 import type { HTTPResult } from '@mirapuri/shared';
 
 /**
+ * デフォルトのレート制限間隔（ミリ秒）
+ * Lodestoneへの負荷を考慮した待機時間
+ */
+const DEFAULT_RATE_LIMIT_MS = 5000;
+
+/**
  * HTTPクライアント設定
  */
 export interface HttpClientConfig {
@@ -15,7 +21,7 @@ export interface HttpClientConfig {
  */
 export const DEFAULT_CONFIG: HttpClientConfig = {
   userAgent: 'MirapriStats/1.0',
-  rateLimitMs: 5000, // 5秒
+  rateLimitMs: DEFAULT_RATE_LIMIT_MS,
 };
 
 /**

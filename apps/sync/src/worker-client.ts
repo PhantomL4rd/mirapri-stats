@@ -6,14 +6,30 @@ import type {
   WorkerResponse,
 } from './types.js';
 
+/**
+ * バッチサイズ（件数）
+ * Worker APIへの1リクエストあたりの最大件数
+ */
+const DEFAULT_ITEMS_CHUNK_SIZE = 500;
+const DEFAULT_USAGE_CHUNK_SIZE = 1000;
+const DEFAULT_PAIRS_CHUNK_SIZE = 1000;
+
 const DEFAULT_CHUNK_SIZES = {
-  items: 500,
-  usage: 1000,
-  pairs: 1000,
+  items: DEFAULT_ITEMS_CHUNK_SIZE,
+  usage: DEFAULT_USAGE_CHUNK_SIZE,
+  pairs: DEFAULT_PAIRS_CHUNK_SIZE,
 };
 
+/**
+ * リトライ設定
+ */
 const DEFAULT_RETRY_COUNT = 3;
-const RETRY_DELAY_MS = 1000;
+
+/**
+ * リトライ間隔の基準値（ミリ秒）
+ * Exponential backoffで使用（1000ms → 2000ms → 4000ms）
+ */
+const DEFAULT_RETRY_DELAY_MS = 1000;
 
 export interface WorkerClient {
   postItems(items: ExtractedItem[]): Promise<{ inserted: number; skipped: number }>;
@@ -57,7 +73,7 @@ export function createWorkerClient(config: WorkerClientConfig): WorkerClient {
           throw error; // 認証エラーは即座に終了
         }
         if (i < attempts - 1) {
-          const delay = RETRY_DELAY_MS * 2 ** i; // exponential backoff
+          const delay = DEFAULT_RETRY_DELAY_MS * 2 ** i; // exponential backoff
           await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }
