@@ -3,8 +3,24 @@
  * Lodestone検索の全組み合わせキーを生成
  */
 
-/** 対象ワールド（初期スコープ: Tiamatのみ） */
-export const WORLDS = ['Tiamat'] as const;
+/** データセンター定義 */
+export const DATA_CENTERS = {
+  Elemental: ['Aegis', 'Atomos', 'Carbuncle', 'Garuda', 'Gungnir', 'Kujata', 'Tonberry', 'Typhon'],
+  Gaia: ['Alexander', 'Bahamut', 'Durandal', 'Fenrir', 'Ifrit', 'Ridill', 'Tiamat', 'Ultima'],
+  Mana: ['Anima', 'Asura', 'Chocobo', 'Hades', 'Ixion', 'Masamune', 'Pandaemonium', 'Titan'],
+  Meteor: ['Belias', 'Mandragora', 'Ramuh', 'Shinryu', 'Unicorn', 'Valefor', 'Yojimbo', 'Zeromus'],
+} as const;
+
+export type DataCenterName = keyof typeof DATA_CENTERS;
+export type WorldName = (typeof DATA_CENTERS)[DataCenterName][number];
+
+/** 全ワールド一覧（日本DC） */
+export const ALL_JP_WORLDS = [
+  ...DATA_CENTERS.Elemental,
+  ...DATA_CENTERS.Gaia,
+  ...DATA_CENTERS.Mana,
+  ...DATA_CENTERS.Meteor,
+] as const;
 
 /**
  * 全ジョブID（クラス除外、ジョブのみ）
@@ -47,9 +63,7 @@ export const RACE_TRIBES = [
   'tribe_13',
   'tribe_14', // ロスガル
   'tribe_15',
-  'tribe_16', // ヴィエラ
-  'tribe_17',
-  'tribe_18', // ロナンガルデ
+  'tribe_16' // ヴィエラ
 ] as const;
 
 /** グランドカンパニー */
@@ -91,16 +105,36 @@ export function buildSearchUrl(key: SearchKey, page?: number): string {
   return `${baseUrl}?${params.toString()}`;
 }
 
+/** 検索キージェネレーターの設定 */
+export interface SearchKeyGeneratorConfig {
+  /** 対象ワールド（worlds または dataCenter のどちらかを指定） */
+  worlds?: readonly string[];
+  /** 対象データセンター（指定すると DC 内の全ワールドが対象） */
+  dataCenter?: DataCenterName;
+}
+
+/**
+ * 設定からワールド一覧を取得
+ */
+export function resolveWorlds(config: SearchKeyGeneratorConfig): readonly string[] {
+  if (config.dataCenter) {
+    return DATA_CENTERS[config.dataCenter];
+  }
+  return config.worlds ?? ['Tiamat'];
+}
+
 /**
  * 検索キージェネレーターを作成
  */
-export function createSearchKeyGenerator(): SearchKeyGenerator {
+export function createSearchKeyGenerator(config: SearchKeyGeneratorConfig = {}): SearchKeyGenerator {
+  const worlds = resolveWorlds(config);
+
   return {
     generateAll(): SearchKey[] {
       const keys: SearchKey[] = [];
       let index = 0;
 
-      for (const worldname of WORLDS) {
+      for (const worldname of worlds) {
         for (const classjob of CLASSJOBS) {
           for (const raceTribe of RACE_TRIBES) {
             for (const gcid of GCIDS) {
@@ -121,7 +155,7 @@ export function createSearchKeyGenerator(): SearchKeyGenerator {
     },
 
     getTotalCount(): number {
-      return WORLDS.length * CLASSJOBS.length * RACE_TRIBES.length * GCIDS.length;
+      return worlds.length * CLASSJOBS.length * RACE_TRIBES.length * GCIDS.length;
     },
   };
 }

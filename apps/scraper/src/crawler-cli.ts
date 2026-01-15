@@ -9,14 +9,42 @@ import {
   createCharacterListFetcher,
   createRetryHttpClient,
   createSearchKeyGenerator,
+  DATA_CENTERS,
+  resolveWorlds,
+  type DataCenterName,
+  type SearchKeyGeneratorConfig,
 } from './crawler';
+
+interface ParsedArgs {
+  dryRun: boolean;
+  world: string | null;
+  dataCenter: DataCenterName | null;
+}
+
+/**
+ * CLI引数をパース
+ */
+function parseArgs(args: string[]): ParsedArgs {
+  const dryRun = args.includes('--dry-run');
+
+  // --world <name> または -w <name>
+  const worldIndex = args.findIndex((a) => a === '--world' || a === '-w');
+  const world = worldIndex !== -1 ? (args[worldIndex + 1] ?? null) : null;
+
+  // --dc <name> または --data-center <name>
+  const dcIndex = args.findIndex((a) => a === '--dc' || a === '--data-center');
+  const dcArg = dcIndex !== -1 ? args[dcIndex + 1] : null;
+  const dataCenter = dcArg && dcArg in DATA_CENTERS ? (dcArg as DataCenterName) : null;
+
+  return { dryRun, world, dataCenter };
+}
 
 /**
  * CLIエントリーポイント
  */
 async function main() {
   const args = process.argv.slice(2);
-  const dryRun = args.includes('--dry-run');
+  const { dryRun, world, dataCenter } = parseArgs(args);
 
   // 環境変数チェック
   const databaseUrl = process.env['DATABASE_URL'];
@@ -25,16 +53,30 @@ async function main() {
     process.exit(1);
   }
 
+  // キージェネレーター設定
+  const keyGenConfig: SearchKeyGeneratorConfig = dataCenter
+    ? { dataCenter }
+    : world
+      ? { worlds: [world] }
+      : { worlds: ['Tiamat'] }; // デフォルト
+
+  const targetWorlds = resolveWorlds(keyGenConfig);
+  const crawlerName = dataCenter
+    ? `${dataCenter.toLowerCase()}-crawler`
+    : `${(targetWorlds[0] ?? 'unknown').toLowerCase()}-crawler`;
+
   console.log('=== Character List Crawler ===');
   console.log(`Mode: ${dryRun ? 'DRY RUN' : 'LIVE'}`);
+  console.log(`Target: ${dataCenter ? `DC: ${dataCenter} (${targetWorlds.length} worlds)` : `World: ${targetWorlds.join(', ')}`}`);
+  console.log(`Crawler Name: ${crawlerName}`);
 
   // コンポーネント初期化
-  const keyGenerator = createSearchKeyGenerator();
+  const keyGenerator = createSearchKeyGenerator(keyGenConfig);
 
   if (dryRun) {
     // dryRunモードはDB接続不要（進捗読み書きをスキップするため）
     const crawler = createCrawler(
-      { crawlerName: 'tiamat-crawler', dryRun: true },
+      { crawlerName, dryRun: true },
       {
         db: null as never, // dryRunでは使用しない
         keyGenerator,
@@ -65,7 +107,7 @@ async function main() {
 
   // クローラー
   const crawler = createCrawler(
-    { crawlerName: 'tiamat-crawler', dryRun: false },
+    { crawlerName, dryRun: false },
     {
       db,
       keyGenerator,

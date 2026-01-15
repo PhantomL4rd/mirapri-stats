@@ -2,8 +2,17 @@
  * Crawler モジュールのエクスポート
  */
 
-export { createSearchKeyGenerator, buildSearchUrl, WORLDS, CLASSJOBS, RACE_TRIBES, GCIDS } from './search-key-generator';
-export type { SearchKey, SearchKeyGenerator } from './search-key-generator';
+export {
+  createSearchKeyGenerator,
+  buildSearchUrl,
+  resolveWorlds,
+  DATA_CENTERS,
+  ALL_JP_WORLDS,
+  CLASSJOBS,
+  RACE_TRIBES,
+  GCIDS,
+} from './search-key-generator';
+export type { SearchKey, SearchKeyGenerator, SearchKeyGeneratorConfig, WorldName, DataCenterName } from './search-key-generator';
 
 export { createRetryHttpClient, DEFAULT_RETRY_CONFIG } from '../utils/retry-http-client';
 export type { RetryConfig } from '../utils/retry-http-client';
