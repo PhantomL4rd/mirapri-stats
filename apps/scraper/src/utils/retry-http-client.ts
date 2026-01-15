@@ -1,4 +1,4 @@
-import type { HttpClient } from '../http-client';
+import type { HttpClient } from './http-client';
 
 /**
  * リトライ設定

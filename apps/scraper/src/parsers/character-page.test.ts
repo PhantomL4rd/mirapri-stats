@@ -1,5 +1,6 @@
+import type { GlamourData } from '@mirapuri/shared';
 import { describe, expect, it } from 'vitest';
-import { parseGlamourData } from './parser.js';
+import { parseGlamourData } from './character-page.js';
 
 // 議事録のHTML構造を再現
 const createMirageSection = (itemName: string, itemUrl: string, category: string) => `
@@ -122,7 +123,7 @@ describe('Parser', () => {
       const result = parseGlamourData(html);
 
       expect(result).toHaveLength(5);
-      expect(result.map((r) => r.slot)).toEqual(['head', 'body', 'hands', 'legs', 'feet']);
+      expect(result.map((r: GlamourData) => r.slot)).toEqual(['head', 'body', 'hands', 'legs', 'feet']);
     });
   });
 

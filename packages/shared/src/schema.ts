@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { check, index, integer, pgTable, smallint, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core';
+import { check, index, jsonb, pgTable, smallint, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 
 /**
  * スロットID定義
@@ -48,26 +48,24 @@ export type CharacterGlamour = typeof charactersGlamour.$inferSelect;
 export type NewCharacterGlamour = typeof charactersGlamour.$inferInsert;
 
 /**
- * クロール進捗管理テーブル
- * クローラーごとの進捗状況を保存
+ * クローラー進捗テーブル
+ * 進捗情報をJSONBで保存
  */
 export const crawlProgress = pgTable('crawl_progress', {
-  /** 主キー（UUID自動生成） */
-  id: uuid('id').primaryKey().defaultRandom(),
-  /** クローラー名（一意） */
-  crawlerName: varchar('crawler_name', { length: 50 }).notNull().unique(),
-  /** 最後に完了したキーインデックス（-1で未開始） */
-  lastCompletedIndex: integer('last_completed_index').notNull().default(-1),
-  /** 総キー数 */
-  totalKeys: integer('total_keys').notNull(),
-  /** 処理済みキャラクター数 */
-  processedCharacters: integer('processed_characters').notNull().default(0),
+  /** クローラー名（主キー） */
+  crawlerName: varchar('crawler_name', { length: 100 }).primaryKey(),
+  /** 進捗データ（JSONB） */
+  progress: jsonb('progress').notNull().$type<{
+    lastCompletedIndex: number;
+    totalKeys: number;
+    processedCharacters: number;
+  }>(),
   /** 更新日時 */
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-/** CrawlProgress SELECT時の型 */
+/** SELECT時の型 */
 export type CrawlProgress = typeof crawlProgress.$inferSelect;
 
-/** CrawlProgress INSERT時の型 */
+/** INSERT時の型 */
 export type NewCrawlProgress = typeof crawlProgress.$inferInsert;

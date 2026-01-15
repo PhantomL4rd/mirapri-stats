@@ -1,9 +1,20 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createCrawler, type CrawlerDependencies } from './crawler';
-import type { SearchKey } from './search-key-generator';
+
+// 進捗関数をモック
+vi.mock('./progress', () => ({
+  loadProgress: vi.fn(),
+  saveProgress: vi.fn(),
+}));
+
+import { loadProgress, saveProgress } from './progress';
+
+const mockLoadProgress = vi.mocked(loadProgress);
+const mockSaveProgress = vi.mocked(saveProgress);
 
 function createMockDeps(overrides: Partial<CrawlerDependencies> = {}): CrawlerDependencies {
   return {
+    db: {} as never, // モックなので実際には使用しない
     keyGenerator: {
       generateAll: vi.fn().mockReturnValue([
         { index: 0, worldname: 'Tiamat', classjob: 19, raceTribe: 'tribe_1', gcid: 1 },
@@ -14,10 +25,6 @@ function createMockDeps(overrides: Partial<CrawlerDependencies> = {}): CrawlerDe
     listFetcher: {
       fetchAllCharacterIds: vi.fn().mockResolvedValue(['11111111', '22222222']),
     },
-    progress: {
-      load: vi.fn().mockResolvedValue(null),
-      save: vi.fn().mockResolvedValue(undefined),
-    },
     scraper: {
       scrape: vi.fn().mockResolvedValue({ success: true, characterId: '11111111', savedCount: 5, errors: [] }),
     },
@@ -27,6 +34,12 @@ function createMockDeps(overrides: Partial<CrawlerDependencies> = {}): CrawlerDe
 }
 
 describe('crawler', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockLoadProgress.mockResolvedValue(null);
+    mockSaveProgress.mockResolvedValue(undefined);
+  });
+
   describe('start', () => {
     it('全検索キーを処理する', async () => {
       const deps = createMockDeps();
@@ -50,19 +63,14 @@ describe('crawler', () => {
     });
 
     it('進捗に基づいて再開位置を決定する', async () => {
-      const deps = createMockDeps({
-        progress: {
-          load: vi.fn().mockResolvedValue({
-            id: '1',
-            crawlerName: 'test',
-            lastCompletedIndex: 0,
-            totalKeys: 2,
-            processedCharacters: 10,
-            updatedAt: new Date(),
-          }),
-          save: vi.fn().mockResolvedValue(undefined),
-        },
+      mockLoadProgress.mockResolvedValue({
+        crawlerName: 'test',
+        lastCompletedIndex: 0,
+        totalKeys: 2,
+        processedCharacters: 10,
+        updatedAt: '2026-01-15T00:00:00.000Z',
       });
+      const deps = createMockDeps();
       const crawler = createCrawler({ crawlerName: 'test', dryRun: false }, deps);
 
       const stats = await crawler.start();
@@ -97,7 +105,7 @@ describe('crawler', () => {
 
       await crawler.start();
 
-      expect(deps.progress.save).toHaveBeenCalledTimes(2);
+      expect(mockSaveProgress).toHaveBeenCalledTimes(2);
     });
 
     it('スクレイプエラーをカウントする', async () => {

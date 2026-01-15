@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import type { HttpClient } from '../http-client';
+import type { HttpClient } from '../utils/http-client';
 import { createCharacterListFetcher } from './character-list-fetcher';
 import type { SearchKey } from './search-key-generator';
 

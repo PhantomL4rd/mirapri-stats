@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { HttpClient } from './http-client.js';
+import type { HttpClient } from './utils/http-client.js';
 import type { GlamourRepository } from './repository.js';
 import { buildLodestoneUrl, createScraper, type Scraper } from './scraper.js';
 

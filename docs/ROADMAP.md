@@ -30,13 +30,13 @@
 - [x] リトライHTTPクライアント（429/503で60秒待機、最大3回）
 - [x] 検索結果パーサー（Cheerio）
 - [x] キャラクター一覧取得（Lv100未満で早期終了）
-- [x] 進捗リポジトリ（`crawl_progress` テーブル）
+- [x] 進捗管理（Supabase `crawl_progress` テーブル, JSONB）
 - [x] メインクロールループ
 - [x] 統計情報収集
 
 ### 残タスク
-- [ ] 型エラー修正
-- [ ] CLIエントリーポイント完成
+- [x] 型エラー修正
+- [x] CLIエントリーポイント完成
 
 **成果物**: `character-list-crawler` spec
 
@@ -53,7 +53,7 @@
 ### アーキテクチャ
 
 ```
-[Lodestone] → [Hetzner] → [Supabase: 生データ]
+[Lodestone] → [Fly.io] → [Supabase: 生データ]
                               ↓ 月次集計
                           [D1: 集計データ] ← [フロント]
 ```
@@ -88,7 +88,7 @@
 
 **目的**: 本番環境での安定稼働
 
-- [ ] Hetzner環境構築
+- [ ] Fly.io環境構築
 - [ ] クロールスケジューラ（キュー型）
 - [ ] Supabase疎通GH Action（週2回、自動停止対策）
 - [ ] 名前決め
@@ -104,7 +104,7 @@
 | ORM | Drizzle |
 | 生データDB | Supabase |
 | 集計DB | Cloudflare D1 |
-| インフラ | ローカル → Hetzner |
+| インフラ | ローカル → Fly.io |
 
 ---
 

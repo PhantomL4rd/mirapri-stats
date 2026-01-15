@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import type { GlamourData, RepositoryResult } from '@mirapuri/shared';
 import { charactersGlamour, SLOT_IDS } from '@mirapuri/shared/schema';
 import type { Database } from '@mirapuri/shared/db';
-import { logger } from './logger.js';
+import { logger } from './utils/logger.js';
 
 /**
  * ミラプリデータリポジトリのインターフェース

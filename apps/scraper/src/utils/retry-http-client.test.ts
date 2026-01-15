@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import type { HttpClient } from '../http-client';
+import type { HttpClient } from './http-client';
 import { createRetryHttpClient, DEFAULT_RETRY_CONFIG } from './retry-http-client';
 
 describe('retry-http-client', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseCharacterListPage } from './character-list-parser';
+import { parseCharacterListPage } from './character-list';
 
 // サンプルHTML（Lodestone検索結果ページの一部）
 const sampleHtml = `

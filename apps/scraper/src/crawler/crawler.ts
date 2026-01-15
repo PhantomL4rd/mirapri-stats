@@ -1,6 +1,7 @@
+import type { Database } from '@mirapuri/shared/db';
 import type { Scraper } from '../scraper';
 import type { CharacterListFetcher } from './character-list-fetcher';
-import type { ProgressRepository } from './progress-repository';
+import { loadProgress, saveProgress } from './progress';
 import type { SearchKeyGenerator } from './search-key-generator';
 
 /**
@@ -26,9 +27,9 @@ export interface CrawlerStats {
  * クローラー依存関係
  */
 export interface CrawlerDependencies {
+  db: Database;
   keyGenerator: SearchKeyGenerator;
   listFetcher: CharacterListFetcher;
-  progress: ProgressRepository;
   scraper: Scraper;
   /** キャラクターが既にDBに存在するかチェック */
   characterExists: (characterId: string) => Promise<boolean>;
@@ -47,7 +48,7 @@ export interface Crawler {
  */
 export function createCrawler(config: CrawlerConfig, deps: CrawlerDependencies): Crawler {
   const { crawlerName, dryRun } = config;
-  const { keyGenerator, listFetcher, progress, scraper, characterExists } = deps;
+  const { db, keyGenerator, listFetcher, scraper, characterExists } = deps;
 
   const stats: CrawlerStats = {
     processedKeys: 0,
@@ -76,7 +77,7 @@ export function createCrawler(config: CrawlerConfig, deps: CrawlerDependencies):
       }
 
       // 進捗を読み込み、再開位置を決定
-      const existingProgress = await progress.load(crawlerName);
+      const existingProgress = await loadProgress(db, crawlerName);
       const startIndex = existingProgress ? existingProgress.lastCompletedIndex + 1 : 0;
 
       if (existingProgress) {
@@ -132,7 +133,7 @@ export function createCrawler(config: CrawlerConfig, deps: CrawlerDependencies):
 
         // キー完了後に進捗を保存
         stats.processedKeys++;
-        await progress.save({
+        await saveProgress(db, {
           crawlerName,
           lastCompletedIndex: key.index,
           totalKeys: stats.totalKeys,

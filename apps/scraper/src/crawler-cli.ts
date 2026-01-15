@@ -1,13 +1,12 @@
 #!/usr/bin/env node
 import 'dotenv/config';
 import { createDb } from '@mirapuri/shared/db';
-import { createHttpClient } from './http-client';
+import { createHttpClient } from './utils/http-client';
 import { createRepository } from './repository';
 import { createScraper } from './scraper';
 import {
   createCrawler,
   createCharacterListFetcher,
-  createProgressRepository,
   createRetryHttpClient,
   createSearchKeyGenerator,
 } from './crawler';
@@ -33,13 +32,13 @@ async function main() {
   const keyGenerator = createSearchKeyGenerator();
 
   if (dryRun) {
-    // dryRunモードはDB接続不要
+    // dryRunモードはDB接続不要（進捗読み書きをスキップするため）
     const crawler = createCrawler(
       { crawlerName: 'tiamat-crawler', dryRun: true },
       {
+        db: null as never, // dryRunでは使用しない
         keyGenerator,
         listFetcher: { fetchAllCharacterIds: async () => [] },
-        progress: { load: async () => null, save: async () => {} },
         scraper: { scrape: async () => ({ success: true, characterId: '', savedCount: 0, errors: [] }) },
         characterExists: async () => false,
       },
@@ -59,7 +58,6 @@ async function main() {
 
   // リポジトリ
   const glamourRepo = createRepository(db);
-  const progressRepo = createProgressRepository(db);
 
   // フェッチャー・スクレイパー
   const listFetcher = createCharacterListFetcher(httpClient);
@@ -69,9 +67,9 @@ async function main() {
   const crawler = createCrawler(
     { crawlerName: 'tiamat-crawler', dryRun: false },
     {
+      db,
       keyGenerator,
       listFetcher,
-      progress: progressRepo,
       scraper,
       characterExists: (id) => glamourRepo.characterExists(id),
     },

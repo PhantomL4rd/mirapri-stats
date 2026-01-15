@@ -1,7 +1,7 @@
 import type { ScraperError, ScraperResult } from '@mirapuri/shared';
-import type { HttpClient } from './http-client.js';
-import { createLogger } from './logger.js';
-import { parseGlamourData } from './parser.js';
+import type { HttpClient } from './utils/http-client.js';
+import { createLogger } from './utils/logger.js';
+import { parseGlamourData } from './parsers/character-page.js';
 import type { GlamourRepository } from './repository.js';
 
 const logger = createLogger('Scraper');
