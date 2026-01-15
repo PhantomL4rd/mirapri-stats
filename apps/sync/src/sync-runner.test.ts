@@ -1,0 +1,257 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Aggregator } from './aggregator.js';
+import { formatProgress, runSync, type SyncRunnerDependencies } from './sync-runner.js';
+import type { WorkerClient } from './worker-client.js';
+
+describe('runSync', () => {
+  let mockAggregator: Aggregator;
+  let mockClient: WorkerClient;
+  let deps: SyncRunnerDependencies;
+  let progressLogs: string[];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    progressLogs = [];
+
+    mockAggregator = {
+      extractUniqueItems: vi.fn().mockResolvedValue([
+        { id: 'item1', name: 'Name1', slotId: 1 },
+        { id: 'item2', name: 'Name2', slotId: 2 },
+      ]),
+      aggregateUsage: vi.fn().mockResolvedValue([
+        { itemId: 'item1', usageCount: 100 },
+        { itemId: 'item2', usageCount: 50 },
+      ]),
+      aggregatePairs: vi.fn().mockResolvedValue([
+        { slotPair: 'head-body', itemIdA: 'item1', itemIdB: 'item2', pairCount: 10, rank: 1 },
+      ]),
+    };
+
+    mockClient = {
+      postItems: vi.fn().mockResolvedValue({ inserted: 2, skipped: 0 }),
+      postUsage: vi.fn().mockResolvedValue({ upserted: 2 }),
+      postPairs: vi.fn().mockResolvedValue({ upserted: 1 }),
+    };
+
+    deps = {
+      aggregator: mockAggregator,
+      client: mockClient,
+      onProgress: (progress) => progressLogs.push(formatProgress(progress)),
+    };
+  });
+
+  describe('デフォルトオプション（全同期）', () => {
+    it('すべてのフェーズを実行する', async () => {
+      const result = await runSync(deps, {
+        itemsOnly: false,
+        statsOnly: false,
+        dryRun: false,
+      });
+
+      expect(mockAggregator.extractUniqueItems).toHaveBeenCalled();
+      expect(mockAggregator.aggregateUsage).toHaveBeenCalled();
+      expect(mockAggregator.aggregatePairs).toHaveBeenCalled();
+      expect(mockClient.postItems).toHaveBeenCalled();
+      expect(mockClient.postUsage).toHaveBeenCalled();
+      expect(mockClient.postPairs).toHaveBeenCalled();
+
+      expect(result.itemsInserted).toBe(2);
+      expect(result.itemsSkipped).toBe(0);
+      expect(result.usageUpserted).toBe(2);
+      expect(result.pairsUpserted).toBe(1);
+      expect(result.errors).toHaveLength(0);
+    });
+  });
+
+  describe('--items-only オプション', () => {
+    it('アイテムのみ同期する', async () => {
+      const result = await runSync(deps, {
+        itemsOnly: true,
+        statsOnly: false,
+        dryRun: false,
+      });
+
+      expect(mockAggregator.extractUniqueItems).toHaveBeenCalled();
+      expect(mockClient.postItems).toHaveBeenCalled();
+
+      expect(mockAggregator.aggregateUsage).not.toHaveBeenCalled();
+      expect(mockAggregator.aggregatePairs).not.toHaveBeenCalled();
+      expect(mockClient.postUsage).not.toHaveBeenCalled();
+      expect(mockClient.postPairs).not.toHaveBeenCalled();
+
+      expect(result.itemsInserted).toBe(2);
+      expect(result.usageUpserted).toBe(0);
+      expect(result.pairsUpserted).toBe(0);
+    });
+  });
+
+  describe('--stats-only オプション', () => {
+    it('統計データのみ同期する', async () => {
+      const result = await runSync(deps, {
+        itemsOnly: false,
+        statsOnly: true,
+        dryRun: false,
+      });
+
+      expect(mockAggregator.extractUniqueItems).not.toHaveBeenCalled();
+      expect(mockClient.postItems).not.toHaveBeenCalled();
+
+      expect(mockAggregator.aggregateUsage).toHaveBeenCalled();
+      expect(mockAggregator.aggregatePairs).toHaveBeenCalled();
+      expect(mockClient.postUsage).toHaveBeenCalled();
+      expect(mockClient.postPairs).toHaveBeenCalled();
+
+      expect(result.itemsInserted).toBe(0);
+      expect(result.usageUpserted).toBe(2);
+      expect(result.pairsUpserted).toBe(1);
+    });
+  });
+
+  describe('--dry-run オプション', () => {
+    it('データを取得するが同期しない', async () => {
+      const result = await runSync(deps, {
+        itemsOnly: false,
+        statsOnly: false,
+        dryRun: true,
+      });
+
+      expect(mockAggregator.extractUniqueItems).toHaveBeenCalled();
+      expect(mockAggregator.aggregateUsage).toHaveBeenCalled();
+      expect(mockAggregator.aggregatePairs).toHaveBeenCalled();
+
+      expect(mockClient.postItems).not.toHaveBeenCalled();
+      expect(mockClient.postUsage).not.toHaveBeenCalled();
+      expect(mockClient.postPairs).not.toHaveBeenCalled();
+
+      expect(result.itemsInserted).toBe(0);
+      expect(result.usageUpserted).toBe(0);
+      expect(result.pairsUpserted).toBe(0);
+    });
+  });
+
+  describe('エラーハンドリング', () => {
+    it('items同期エラー時にエラーを記録する', async () => {
+      vi.mocked(mockClient.postItems).mockRejectedValue(new Error('Network error'));
+
+      const result = await runSync(deps, {
+        itemsOnly: false,
+        statsOnly: false,
+        dryRun: false,
+      });
+
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toContain('Items sync failed');
+    });
+
+    it('usage同期エラー時にエラーを記録する', async () => {
+      vi.mocked(mockClient.postUsage).mockRejectedValue(new Error('Network error'));
+
+      const result = await runSync(deps, {
+        itemsOnly: false,
+        statsOnly: false,
+        dryRun: false,
+      });
+
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toContain('Usage sync failed');
+    });
+
+    it('pairs同期エラー時にエラーを記録する', async () => {
+      vi.mocked(mockClient.postPairs).mockRejectedValue(new Error('Network error'));
+
+      const result = await runSync(deps, {
+        itemsOnly: false,
+        statsOnly: false,
+        dryRun: false,
+      });
+
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toContain('Pairs sync failed');
+    });
+
+    it('複数のエラーを記録できる', async () => {
+      vi.mocked(mockClient.postItems).mockRejectedValue(new Error('Error 1'));
+      vi.mocked(mockClient.postUsage).mockRejectedValue(new Error('Error 2'));
+      vi.mocked(mockClient.postPairs).mockRejectedValue(new Error('Error 3'));
+
+      const result = await runSync(deps, {
+        itemsOnly: false,
+        statsOnly: false,
+        dryRun: false,
+      });
+
+      expect(result.errors).toHaveLength(3);
+    });
+  });
+
+  describe('進捗コールバック', () => {
+    it('各フェーズの進捗を通知する', async () => {
+      await runSync(deps, {
+        itemsOnly: false,
+        statsOnly: false,
+        dryRun: false,
+      });
+
+      expect(progressLogs).toHaveLength(3);
+      expect(progressLogs[0]).toContain('[items]');
+      expect(progressLogs[1]).toContain('[usage]');
+      expect(progressLogs[2]).toContain('[pairs]');
+    });
+
+    it('dry-run時は進捗を通知しない', async () => {
+      await runSync(deps, {
+        itemsOnly: false,
+        statsOnly: false,
+        dryRun: true,
+      });
+
+      expect(progressLogs).toHaveLength(0);
+    });
+  });
+});
+
+describe('formatProgress', () => {
+  it('正常な進捗をフォーマットする', () => {
+    const result = formatProgress({
+      phase: 'items',
+      processed: 50,
+      total: 100,
+      errors: 0,
+    });
+
+    expect(result).toBe('[items] 50/100 (50%)');
+  });
+
+  it('エラーがある場合はエラー数を含める', () => {
+    const result = formatProgress({
+      phase: 'usage',
+      processed: 80,
+      total: 100,
+      errors: 3,
+    });
+
+    expect(result).toBe('[usage] 80/100 (80%), errors: 3');
+  });
+
+  it('total が 0 の場合は 0% を表示する', () => {
+    const result = formatProgress({
+      phase: 'pairs',
+      processed: 0,
+      total: 0,
+      errors: 0,
+    });
+
+    expect(result).toBe('[pairs] 0/0 (0%)');
+  });
+
+  it('100% 完了を正しく表示する', () => {
+    const result = formatProgress({
+      phase: 'items',
+      processed: 100,
+      total: 100,
+      errors: 0,
+    });
+
+    expect(result).toBe('[items] 100/100 (100%)');
+  });
+});
