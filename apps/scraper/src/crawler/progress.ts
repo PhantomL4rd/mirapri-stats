@@ -1,6 +1,7 @@
 import type { Database } from '@mirapuri/shared/db';
 import { crawlProgress } from '@mirapuri/shared/schema';
 import { eq } from 'drizzle-orm';
+import { DEFAULT_SEED } from './shuffle';
 
 /**
  * 進捗データ
@@ -11,6 +12,8 @@ export interface ProgressData {
   totalKeys: number;
   processedCharacters: number;
   updatedAt: string;
+  /** シャッフル用シード値 */
+  seed: number;
 }
 
 /**
@@ -21,6 +24,8 @@ export interface ProgressSaveData {
   lastCompletedIndex: number;
   totalKeys: number;
   processedCharacters: number;
+  /** シャッフル用シード値 */
+  seed: number;
 }
 
 /**
@@ -47,6 +52,8 @@ export async function loadProgress(
     totalKeys: row.progress.totalKeys,
     processedCharacters: row.progress.processedCharacters,
     updatedAt: row.updatedAt.toISOString(),
+    // 後方互換: seed未設定の既存データはデフォルト値を使用
+    seed: row.progress.seed ?? DEFAULT_SEED,
   };
 }
 
@@ -58,6 +65,7 @@ export async function saveProgress(db: Database, data: ProgressSaveData): Promis
     lastCompletedIndex: data.lastCompletedIndex,
     totalKeys: data.totalKeys,
     processedCharacters: data.processedCharacters,
+    seed: data.seed,
   };
 
   await db

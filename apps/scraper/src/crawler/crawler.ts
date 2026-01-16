@@ -3,6 +3,13 @@ import type { Scraper } from '../scraper';
 import type { CharacterListFetcher } from './character-list-fetcher';
 import { loadProgress, saveProgress } from './progress';
 import type { SearchKeyGenerator } from './search-key-generator';
+import { DEFAULT_SEED } from './shuffle';
+
+/** デフォルトのキャラクター数上限 */
+export const DEFAULT_LIMIT = 5000;
+
+/** 終了理由 */
+export type ExitReason = 'COMPLETED' | 'LIMIT_REACHED';
 
 /**
  * クローラー設定
@@ -10,6 +17,10 @@ import type { SearchKeyGenerator } from './search-key-generator';
 export interface CrawlerConfig {
   crawlerName: string;
   dryRun: boolean;
+  /** キャラクター数上限（デフォルト: 5000） */
+  limit?: number;
+  /** シャッフル用シード値（デフォルト: 42） */
+  seed?: number;
 }
 
 /**
@@ -21,6 +32,8 @@ export interface CrawlerStats {
   processedCharacters: number;
   skippedCharacters: number;
   errors: number;
+  /** 終了理由 */
+  exitReason: ExitReason;
 }
 
 /**
@@ -47,7 +60,7 @@ export interface Crawler {
  * クローラーを作成
  */
 export function createCrawler(config: CrawlerConfig, deps: CrawlerDependencies): Crawler {
-  const { crawlerName, dryRun } = config;
+  const { crawlerName, dryRun, limit = DEFAULT_LIMIT, seed = DEFAULT_SEED } = config;
   const { db, keyGenerator, listFetcher, scraper, characterExists } = deps;
 
   const stats: CrawlerStats = {
@@ -56,6 +69,7 @@ export function createCrawler(config: CrawlerConfig, deps: CrawlerDependencies):
     processedCharacters: 0,
     skippedCharacters: 0,
     errors: 0,
+    exitReason: 'COMPLETED',
   };
 
   return {
@@ -65,6 +79,7 @@ export function createCrawler(config: CrawlerConfig, deps: CrawlerDependencies):
 
       console.log(`[Crawler] Starting crawler: ${crawlerName}`);
       console.log(`[Crawler] Total keys: ${stats.totalKeys}`);
+      console.log(`[Crawler] Character limit: ${limit}`);
 
       if (dryRun) {
         console.log('[Crawler] Dry run mode - printing keys and exiting');
@@ -83,6 +98,16 @@ export function createCrawler(config: CrawlerConfig, deps: CrawlerDependencies):
       if (existingProgress) {
         console.log(`[Crawler] Resuming from index ${startIndex}`);
         stats.processedCharacters = existingProgress.processedCharacters;
+
+        // シード不整合警告
+        if (existingProgress.seed !== seed) {
+          console.warn(
+            `[Crawler] WARNING: Seed mismatch! Progress has seed=${existingProgress.seed}, but current seed=${seed}`,
+          );
+          console.warn(
+            '[Crawler] This may cause inconsistent shuffling. Consider using --seed to match.',
+          );
+        }
       }
 
       // 各キーを順次処理
@@ -138,14 +163,26 @@ export function createCrawler(config: CrawlerConfig, deps: CrawlerDependencies):
           lastCompletedIndex: key.index,
           totalKeys: stats.totalKeys,
           processedCharacters: stats.processedCharacters,
+          seed,
         });
 
         console.log(
-          `[Crawler] Key ${key.index + 1}/${stats.totalKeys} completed. Processed: ${stats.processedCharacters}, Skipped: ${stats.skippedCharacters}, Errors: ${stats.errors}`,
+          `[Crawler] Key ${key.index + 1}/${stats.totalKeys} completed. Processed: ${stats.processedCharacters}/${limit}, Skipped: ${stats.skippedCharacters}, Errors: ${stats.errors}`,
         );
+
+        // 上限到達チェック（キー完了後）
+        if (stats.processedCharacters >= limit) {
+          stats.exitReason = 'LIMIT_REACHED';
+          console.log(
+            `[Crawler] Limit reached: ${stats.processedCharacters}/${limit} characters processed`,
+          );
+          break;
+        }
       }
 
-      console.log('[Crawler] Crawl completed');
+      if (stats.exitReason === 'COMPLETED') {
+        console.log('[Crawler] Crawl completed');
+      }
       console.log(
         `[Crawler] Final stats: Keys=${stats.processedKeys}/${stats.totalKeys}, Characters=${stats.processedCharacters}, Skipped=${stats.skippedCharacters}, Errors=${stats.errors}`,
       );

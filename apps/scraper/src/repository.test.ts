@@ -115,9 +115,7 @@ describe('repository', () => {
     });
 
     it('データベースエラー時はエラー結果を返す', async () => {
-      const glamourData: GlamourData[] = [
-        { slot: 'head', itemId: 'abc123', itemName: '頭装備' },
-      ];
+      const glamourData: GlamourData[] = [{ slot: 'head', itemId: 'abc123', itemName: '頭装備' }];
 
       mockValues.mockRejectedValue(new Error('Connection refused'));
 

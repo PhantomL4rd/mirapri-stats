@@ -22,9 +22,11 @@ describe('runSync', () => {
         { itemId: 'item1', usageCount: 100 },
         { itemId: 'item2', usageCount: 50 },
       ]),
-      aggregatePairs: vi.fn().mockResolvedValue([
-        { slotPair: 'head-body', itemIdA: 'item1', itemIdB: 'item2', pairCount: 10, rank: 1 },
-      ]),
+      aggregatePairs: vi
+        .fn()
+        .mockResolvedValue([
+          { slotPair: 'head-body', itemIdA: 'item1', itemIdB: 'item2', pairCount: 10, rank: 1 },
+        ]),
       isCrawlComplete: vi.fn().mockResolvedValue(true),
       cleanup: vi.fn().mockResolvedValue(undefined),
     };

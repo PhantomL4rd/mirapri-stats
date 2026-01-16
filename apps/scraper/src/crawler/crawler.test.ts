@@ -71,6 +71,7 @@ describe('crawler', () => {
         totalKeys: 2,
         processedCharacters: 10,
         updatedAt: '2026-01-15T00:00:00.000Z',
+        seed: 42,
       });
       const deps = createMockDeps();
       const crawler = createCrawler({ crawlerName: 'test', dryRun: false }, deps);
@@ -141,6 +142,66 @@ describe('crawler', () => {
 
       const finalStats = crawler.getStats();
       expect(finalStats.processedKeys).toBe(2);
+    });
+  });
+
+  describe('上限到達による完了', () => {
+    it('上限に達したらクロールを終了する', async () => {
+      const deps = createMockDeps({
+        listFetcher: {
+          // 各キーで3人返す
+          fetchAllCharacterIds: vi.fn().mockResolvedValue(['11111111', '22222222', '33333333']),
+        },
+      });
+      // 上限2人に設定
+      const crawler = createCrawler({ crawlerName: 'test', dryRun: false, limit: 2 }, deps);
+
+      const stats = await crawler.start();
+
+      // 上限に達したので途中で終了（1キー目で3人処理 > 2人上限）
+      expect(stats.exitReason).toBe('LIMIT_REACHED');
+      expect(stats.processedKeys).toBe(1); // 1キー目完了後に終了
+    });
+
+    it('上限未満の場合は全キーを処理する', async () => {
+      const deps = createMockDeps({
+        listFetcher: {
+          fetchAllCharacterIds: vi.fn().mockResolvedValue(['11111111']),
+        },
+      });
+      // 上限100人（到達しない）
+      const crawler = createCrawler({ crawlerName: 'test', dryRun: false, limit: 100 }, deps);
+
+      const stats = await crawler.start();
+
+      expect(stats.exitReason).toBe('COMPLETED');
+      expect(stats.processedKeys).toBe(2);
+    });
+
+    it('limit未指定時はデフォルト5000人', async () => {
+      const deps = createMockDeps();
+      const crawler = createCrawler({ crawlerName: 'test', dryRun: false }, deps);
+
+      const stats = await crawler.start();
+
+      // 2キー×2人=4人 < 5000人なので全て処理
+      expect(stats.exitReason).toBe('COMPLETED');
+    });
+
+    it('上限ちょうどで終了する', async () => {
+      const deps = createMockDeps({
+        listFetcher: {
+          fetchAllCharacterIds: vi.fn().mockResolvedValue(['11111111', '22222222']),
+        },
+      });
+      // 上限4人（2キー×2人でちょうど）
+      const crawler = createCrawler({ crawlerName: 'test', dryRun: false, limit: 4 }, deps);
+
+      const stats = await crawler.start();
+
+      // 4人処理完了後に終了
+      expect(stats.processedCharacters).toBe(4);
+      expect(stats.exitReason).toBe('LIMIT_REACHED');
     });
   });
 });

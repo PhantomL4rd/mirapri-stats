@@ -57,10 +57,7 @@ export function parseGlamourData(html: string): GlamourData[] {
 /**
  * <p>タグから装備名を抽出（<a>タグのテキストを除外）
  */
-function extractItemName(
-  $: cheerio.CheerioAPI,
-  $p: ReturnType<cheerio.CheerioAPI>,
-): string | null {
+function extractItemName($: cheerio.CheerioAPI, $p: ReturnType<cheerio.CheerioAPI>): string | null {
   if ($p.length === 0) return null;
 
   // テキストノードのみを取得（子要素のテキストは除外）

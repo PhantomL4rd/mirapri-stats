@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createAggregator, type AggregatorDependencies } from './aggregator.js';
+import { type AggregatorDependencies, createAggregator } from './aggregator.js';
 
 describe('Aggregator', () => {
   describe('extractUniqueItems', () => {
@@ -35,9 +35,9 @@ describe('Aggregator', () => {
     });
 
     it('アイテム名はキャッシュから取得される', async () => {
-      const mockFrom = vi.fn().mockResolvedValue([
-        { id: 'item1', name: 'ガリーソフォス・キャップ', slotId: 1 },
-      ]);
+      const mockFrom = vi
+        .fn()
+        .mockResolvedValue([{ id: 'item1', name: 'ガリーソフォス・キャップ', slotId: 1 }]);
       const mockDb = {
         select: vi.fn(() => ({ from: mockFrom })),
       } as unknown as AggregatorDependencies['db'];
@@ -96,9 +96,10 @@ describe('Aggregator', () => {
   });
 
   describe('aggregatePairs', () => {
-    const createPairsMockDb = (mockExecute: ReturnType<typeof vi.fn>) => ({
-      execute: mockExecute,
-    }) as unknown as AggregatorDependencies['db'];
+    const createPairsMockDb = (mockExecute: ReturnType<typeof vi.fn>) =>
+      ({
+        execute: mockExecute,
+      }) as unknown as AggregatorDependencies['db'];
 
     it('4パターンのペアを集計する', async () => {
       const mockExecute = vi
@@ -138,9 +139,11 @@ describe('Aggregator', () => {
     });
 
     it('pairCountとrankを数値に変換する', async () => {
-      const mockExecute = vi.fn().mockResolvedValue([
-        { item_id_a: 'item1', item_id_b: 'item2', pair_count: '100', rank: '1' },
-      ]);
+      const mockExecute = vi
+        .fn()
+        .mockResolvedValue([
+          { item_id_a: 'item1', item_id_b: 'item2', pair_count: '100', rank: '1' },
+        ]);
       const mockDb = createPairsMockDb(mockExecute);
 
       const aggregator = createAggregator({ db: mockDb });
@@ -193,9 +196,11 @@ describe('Aggregator', () => {
     it('進捗が完了していればtrueを返す', async () => {
       const mockSelect = vi.fn(() => ({
         from: vi.fn(() => ({
-          limit: vi.fn().mockResolvedValue([
-            { progress: { lastCompletedIndex: 99, totalKeys: 100, processedCharacters: 1000 } },
-          ]),
+          limit: vi
+            .fn()
+            .mockResolvedValue([
+              { progress: { lastCompletedIndex: 99, totalKeys: 100, processedCharacters: 1000 } },
+            ]),
         })),
       }));
       const mockDb = { select: mockSelect } as unknown as AggregatorDependencies['db'];
@@ -209,9 +214,11 @@ describe('Aggregator', () => {
     it('進捗が未完了ならfalseを返す', async () => {
       const mockSelect = vi.fn(() => ({
         from: vi.fn(() => ({
-          limit: vi.fn().mockResolvedValue([
-            { progress: { lastCompletedIndex: 50, totalKeys: 100, processedCharacters: 500 } },
-          ]),
+          limit: vi
+            .fn()
+            .mockResolvedValue([
+              { progress: { lastCompletedIndex: 50, totalKeys: 100, processedCharacters: 500 } },
+            ]),
         })),
       }));
       const mockDb = { select: mockSelect } as unknown as AggregatorDependencies['db'];

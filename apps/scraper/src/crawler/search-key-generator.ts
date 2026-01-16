@@ -3,6 +3,8 @@
  * Lodestone検索の全組み合わせキーを生成
  */
 
+import { DEFAULT_SEED, shuffleWithSeed } from './shuffle';
+
 /** データセンター定義 */
 export const DATA_CENTERS = {
   Elemental: ['Aegis', 'Atomos', 'Carbuncle', 'Garuda', 'Gungnir', 'Kujata', 'Tonberry', 'Typhon'],
@@ -136,6 +138,8 @@ export interface SearchKeyGeneratorConfig {
   worlds?: readonly string[];
   /** 対象データセンター（指定すると DC 内の全ワールドが対象） */
   dataCenter?: DataCenterName;
+  /** シャッフル用シード値（デフォルト: 42） */
+  seed?: number;
 }
 
 /**
@@ -155,6 +159,7 @@ export function createSearchKeyGenerator(
   config: SearchKeyGeneratorConfig = {},
 ): SearchKeyGenerator {
   const worlds = resolveWorlds(config);
+  const seed = config.seed ?? DEFAULT_SEED;
 
   return {
     generateAll(): SearchKey[] {
@@ -178,7 +183,8 @@ export function createSearchKeyGenerator(
         }
       }
 
-      return keys;
+      // シャッフルして返す（インデックスは元の順序を保持）
+      return shuffleWithSeed(keys, seed);
     },
 
     getTotalCount(): number {

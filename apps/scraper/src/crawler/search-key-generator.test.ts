@@ -8,6 +8,7 @@ import {
   GCIDS,
   RACE_TRIBES,
 } from './search-key-generator';
+import { DEFAULT_SEED } from './shuffle';
 
 describe('search-key-generator', () => {
   describe('マスタデータ', () => {
@@ -57,21 +58,18 @@ describe('search-key-generator', () => {
         expect(uniqueIndices.size).toBe(1536);
       });
 
-      it('インデックスは0から始まる連番', () => {
+      it('全インデックスが存在する（シャッフル後も欠損なし）', () => {
         const keys = generator.generateAll();
-        expect(keys[0]?.index).toBe(0);
-        expect(keys[keys.length - 1]?.index).toBe(keys.length - 1);
+        const indices = keys.map((k) => k.index).sort((a, b) => a - b);
+        expect(indices[0]).toBe(0);
+        expect(indices[indices.length - 1]).toBe(keys.length - 1);
       });
 
-      it('最初のキーはTiamat, ジョブID 19, tribe_1, GC 1', () => {
+      it('全キーにTiamatが含まれる（デフォルト設定）', () => {
         const keys = generator.generateAll();
-        expect(keys[0]).toEqual({
-          index: 0,
-          worldname: 'Tiamat',
-          classjob: 19,
-          raceTribe: 'tribe_1',
-          gcid: 1,
-        });
+        for (const key of keys) {
+          expect(key.worldname).toBe('Tiamat');
+        }
       });
 
       it('全キーにworldname, classjob, raceTribe, gcidが含まれる', () => {
@@ -161,6 +159,74 @@ describe('search-key-generator', () => {
         gcid: 1,
       });
       expect(url).not.toContain('page=');
+    });
+  });
+
+  describe('シャッフル機能', () => {
+    it('seed指定でシャッフルされたキーを生成する', () => {
+      const generator = createSearchKeyGenerator({ seed: 42 });
+      const keys = generator.generateAll();
+
+      // シャッフルされているので最初のキーは元の順序と異なるはず
+      expect(keys[0]?.index).not.toBe(0);
+    });
+
+    it('同じseedで同じ順序が生成される（再現性）', () => {
+      const gen1 = createSearchKeyGenerator({ seed: 42 });
+      const gen2 = createSearchKeyGenerator({ seed: 42 });
+
+      const keys1 = gen1.generateAll();
+      const keys2 = gen2.generateAll();
+
+      expect(keys1).toEqual(keys2);
+    });
+
+    it('異なるseedで異なる順序が生成される', () => {
+      const gen1 = createSearchKeyGenerator({ seed: 42 });
+      const gen2 = createSearchKeyGenerator({ seed: 123 });
+
+      const keys1 = gen1.generateAll();
+      const keys2 = gen2.generateAll();
+
+      // 最初の10件を比較（全件が同じになる確率は極めて低い）
+      const first10Keys1 = keys1.slice(0, 10).map((k) => k.index);
+      const first10Keys2 = keys2.slice(0, 10).map((k) => k.index);
+      expect(first10Keys1).not.toEqual(first10Keys2);
+    });
+
+    it('シャッフル後も全キーが保持される', () => {
+      const generator = createSearchKeyGenerator({ seed: 42 });
+      const keys = generator.generateAll();
+
+      // 全キー数は変わらない
+      expect(keys).toHaveLength(1536);
+
+      // 全インデックスが存在する（重複なし、欠損なし）
+      const indices = keys.map((k) => k.index).sort((a, b) => a - b);
+      expect(indices[0]).toBe(0);
+      expect(indices[indices.length - 1]).toBe(1535);
+    });
+
+    it('seed未指定時はデフォルトシード(42)が使用される', () => {
+      const genDefault = createSearchKeyGenerator({});
+      const genExplicit = createSearchKeyGenerator({ seed: DEFAULT_SEED });
+
+      const keysDefault = genDefault.generateAll();
+      const keysExplicit = genExplicit.generateAll();
+
+      expect(keysDefault).toEqual(keysExplicit);
+    });
+
+    it('DC指定とseed指定を組み合わせられる', () => {
+      const generator = createSearchKeyGenerator({ dataCenter: 'Gaia', seed: 42 });
+      const keys = generator.generateAll();
+
+      // Gaia DCの全8ワールドが含まれる
+      const worlds = new Set(keys.map((k) => k.worldname));
+      expect(worlds.size).toBe(8);
+
+      // シャッフルされている
+      expect(keys[0]?.index).not.toBe(0);
     });
   });
 });

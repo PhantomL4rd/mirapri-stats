@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createWorkerClient, type WorkerClient } from './worker-client.js';
 import type { AggregatedPair, AggregatedUsage, ExtractedItem } from './types.js';
+import { createWorkerClient, type WorkerClient } from './worker-client.js';
 
 // Mock global fetch
 const mockFetch = vi.fn();
@@ -107,7 +107,10 @@ describe('WorkerClient', () => {
       const result = await client.postUsage(usage);
 
       expect(result).toEqual({ upserted: 3 });
-      expect(mockFetch).toHaveBeenCalledWith('https://api.example.com/api/usage', expect.anything());
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.example.com/api/usage',
+        expect.anything(),
+      );
     });
 
     it('1000件を超えるデータはチャンク分割される', async () => {
@@ -139,7 +142,10 @@ describe('WorkerClient', () => {
       const result = await client.postPairs(pairs);
 
       expect(result).toEqual({ upserted: 2 });
-      expect(mockFetch).toHaveBeenCalledWith('https://api.example.com/api/pairs', expect.anything());
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.example.com/api/pairs',
+        expect.anything(),
+      );
     });
 
     it('1000件を超えるデータはチャンク分割される', async () => {
@@ -214,9 +220,7 @@ describe('WorkerClient', () => {
 
       const items: ExtractedItem[] = [{ id: 'item1', name: 'Name1', slotId: 1 }];
 
-      await expect(client.postItems(items)).rejects.toThrow(
-        'Failed to post items: 400',
-      );
+      await expect(client.postItems(items)).rejects.toThrow('Failed to post items: 400');
     });
   });
 

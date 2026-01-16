@@ -66,6 +66,8 @@ export const crawlProgress = pgTable('crawl_progress', {
     lastCompletedIndex: number;
     totalKeys: number;
     processedCharacters: number;
+    /** シャッフル用シード値（後方互換のためオプショナル） */
+    seed?: number;
   }>(),
   /** 更新日時 */
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

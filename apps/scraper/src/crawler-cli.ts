@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import 'dotenv/config';
 import { createDb } from '@mirapuri/shared/db';
+import type { SearchKey } from './crawler';
 import {
   createCharacterListFetcher,
   createCrawler,
@@ -8,6 +9,8 @@ import {
   createSearchKeyGenerator,
   DATA_CENTERS,
   type DataCenterName,
+  DEFAULT_LIMIT,
+  DEFAULT_SEED,
   resolveWorlds,
   type SearchKeyGeneratorConfig,
 } from './crawler';
@@ -15,10 +18,59 @@ import { createRepository } from './repository';
 import { createScraper } from './scraper';
 import { createHttpClient } from './utils/http-client';
 
+/**
+ * 属性分布サマリーを表示（dry-run用）
+ */
+function printDistributionSummary(keys: SearchKey[]): void {
+  console.log(`\n=== Distribution Summary (first ${keys.length} keys) ===`);
+
+  // ワールド分布
+  const worldCounts = new Map<string, number>();
+  for (const key of keys) {
+    worldCounts.set(key.worldname, (worldCounts.get(key.worldname) ?? 0) + 1);
+  }
+  console.log('\nWorld distribution:');
+  for (const [world, count] of [...worldCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)) {
+    console.log(`  ${world}: ${count} (${((count / keys.length) * 100).toFixed(1)}%)`);
+  }
+
+  // ジョブ分布（上位5件）
+  const jobCounts = new Map<number, number>();
+  for (const key of keys) {
+    jobCounts.set(key.classjob, (jobCounts.get(key.classjob) ?? 0) + 1);
+  }
+  console.log('\nJob distribution (top 5):');
+  for (const [job, count] of [...jobCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)) {
+    console.log(`  Job ${job}: ${count} (${((count / keys.length) * 100).toFixed(1)}%)`);
+  }
+
+  // 種族分布（上位5件）
+  const tribeCounts = new Map<string, number>();
+  for (const key of keys) {
+    tribeCounts.set(key.raceTribe, (tribeCounts.get(key.raceTribe) ?? 0) + 1);
+  }
+  console.log('\nRace/Tribe distribution (top 5):');
+  for (const [tribe, count] of [...tribeCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)) {
+    console.log(`  ${tribe}: ${count} (${((count / keys.length) * 100).toFixed(1)}%)`);
+  }
+
+  // GC分布
+  const gcCounts = new Map<number, number>();
+  for (const key of keys) {
+    gcCounts.set(key.gcid, (gcCounts.get(key.gcid) ?? 0) + 1);
+  }
+  console.log('\nGrand Company distribution:');
+  for (const [gc, count] of [...gcCounts.entries()].sort((a, b) => a[0] - b[0])) {
+    console.log(`  GC ${gc}: ${count} (${((count / keys.length) * 100).toFixed(1)}%)`);
+  }
+}
+
 interface ParsedArgs {
   dryRun: boolean;
   world: string | null;
   dataCenter: DataCenterName | null;
+  seed: number;
+  limit: number;
 }
 
 /**
@@ -36,7 +88,17 @@ function parseArgs(args: string[]): ParsedArgs {
   const dcArg = dcIndex !== -1 ? args[dcIndex + 1] : null;
   const dataCenter = dcArg && dcArg in DATA_CENTERS ? (dcArg as DataCenterName) : null;
 
-  return { dryRun, world, dataCenter };
+  // --seed <number>
+  const seedIndex = args.findIndex((a) => a === '--seed');
+  const seedArg = seedIndex !== -1 ? args[seedIndex + 1] : null;
+  const seed = seedArg ? Number.parseInt(seedArg, 10) : DEFAULT_SEED;
+
+  // --limit <number>
+  const limitIndex = args.findIndex((a) => a === '--limit');
+  const limitArg = limitIndex !== -1 ? args[limitIndex + 1] : null;
+  const limit = limitArg ? Number.parseInt(limitArg, 10) : DEFAULT_LIMIT;
+
+  return { dryRun, world, dataCenter, seed, limit };
 }
 
 /**
@@ -44,7 +106,7 @@ function parseArgs(args: string[]): ParsedArgs {
  */
 async function main() {
   const args = process.argv.slice(2);
-  const { dryRun, world, dataCenter } = parseArgs(args);
+  const { dryRun, world, dataCenter, seed, limit } = parseArgs(args);
 
   // 環境変数チェック
   const databaseUrl = process.env['DATABASE_URL'];
@@ -55,10 +117,10 @@ async function main() {
 
   // キージェネレーター設定
   const keyGenConfig: SearchKeyGeneratorConfig = dataCenter
-    ? { dataCenter }
+    ? { dataCenter, seed }
     : world
-      ? { worlds: [world] }
-      : { worlds: ['Tiamat'] }; // デフォルト
+      ? { worlds: [world], seed }
+      : { worlds: ['Tiamat'], seed }; // デフォルト
 
   const targetWorlds = resolveWorlds(keyGenConfig);
   const crawlerName = dataCenter
@@ -71,6 +133,8 @@ async function main() {
     `Target: ${dataCenter ? `DC: ${dataCenter} (${targetWorlds.length} worlds)` : `World: ${targetWorlds.join(', ')}`}`,
   );
   console.log(`Crawler Name: ${crawlerName}`);
+  console.log(`Seed: ${seed}`);
+  console.log(`Character Limit: ${limit}`);
 
   // コンポーネント初期化
   const keyGenerator = createSearchKeyGenerator(keyGenConfig);
@@ -78,7 +142,7 @@ async function main() {
   if (dryRun) {
     // dryRunモードはDB接続不要（進捗読み書きをスキップするため）
     const crawler = createCrawler(
-      { crawlerName, dryRun: true },
+      { crawlerName, dryRun: true, seed, limit },
       {
         db: null as never, // dryRunでは使用しない
         keyGenerator,
@@ -91,6 +155,11 @@ async function main() {
     );
 
     await crawler.start();
+
+    // 属性分布サマリーを表示
+    const keys = keyGenerator.generateAll();
+    printDistributionSummary(keys.slice(0, 100));
+
     console.log('\nDry run completed.');
     return;
   }
@@ -111,7 +180,7 @@ async function main() {
 
   // クローラー
   const crawler = createCrawler(
-    { crawlerName, dryRun: false },
+    { crawlerName, dryRun: false, seed, limit },
     {
       db,
       keyGenerator,
@@ -125,8 +194,9 @@ async function main() {
     const stats = await crawler.start();
 
     console.log('\n=== Crawl Summary ===');
+    console.log(`Exit reason: ${stats.exitReason}`);
     console.log(`Keys processed: ${stats.processedKeys}/${stats.totalKeys}`);
-    console.log(`Characters processed: ${stats.processedCharacters}`);
+    console.log(`Characters processed: ${stats.processedCharacters}/${limit}`);
     console.log(`Characters skipped: ${stats.skippedCharacters}`);
     console.log(`Errors: ${stats.errors}`);
   } finally {
