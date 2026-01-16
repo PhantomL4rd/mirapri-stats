@@ -91,12 +91,14 @@ export function createCrawler(config: CrawlerConfig, deps: CrawlerDependencies):
         return stats;
       }
 
-      // 進捗を読み込み、再開位置を決定
+      // 進捗を読み込み、再開位置を決定（シャッフル後の配列位置）
       const existingProgress = await loadProgress(db, crawlerName);
-      const startIndex = existingProgress ? existingProgress.lastCompletedIndex + 1 : 0;
+      const startShuffledIndex = existingProgress
+        ? existingProgress.lastCompletedShuffledIndex + 1
+        : 0;
 
       if (existingProgress) {
-        console.log(`[Crawler] Resuming from index ${startIndex}`);
+        console.log(`[Crawler] Resuming from shuffled index ${startShuffledIndex}`);
         stats.processedCharacters = existingProgress.processedCharacters;
 
         // シード不整合警告
@@ -110,14 +112,15 @@ export function createCrawler(config: CrawlerConfig, deps: CrawlerDependencies):
         }
       }
 
-      // 各キーを順次処理
-      for (const key of keys) {
-        if (key.index < startIndex) {
+      // 各キーを順次処理（シャッフル後の配列位置ベース）
+      for (let i = 0; i < keys.length; i++) {
+        if (i < startShuffledIndex) {
           continue;
         }
 
+        const key = keys[i]!;
         console.log(
-          `[Crawler] Processing key ${key.index + 1}/${stats.totalKeys}: ${key.worldname} / job:${key.classjob} / ${key.raceTribe} / gc:${key.gcid}`,
+          `[Crawler] Processing shuffled index ${i + 1}/${stats.totalKeys} (original index: ${key.index}): ${key.worldname} / job:${key.classjob} / ${key.raceTribe} / gc:${key.gcid}`,
         );
 
         // キャラクター一覧を取得
@@ -156,18 +159,18 @@ export function createCrawler(config: CrawlerConfig, deps: CrawlerDependencies):
           }
         }
 
-        // キー完了後に進捗を保存
+        // キー完了後に進捗を保存（シャッフル後の配列位置を記録）
         stats.processedKeys++;
         await saveProgress(db, {
           crawlerName,
-          lastCompletedIndex: key.index,
+          lastCompletedShuffledIndex: i,
           totalKeys: stats.totalKeys,
           processedCharacters: stats.processedCharacters,
           seed,
         });
 
         console.log(
-          `[Crawler] Key ${key.index + 1}/${stats.totalKeys} completed. Processed: ${stats.processedCharacters}/${limit}, Skipped: ${stats.skippedCharacters}, Errors: ${stats.errors}`,
+          `[Crawler] Shuffled index ${i + 1}/${stats.totalKeys} completed. Processed: ${stats.processedCharacters}/${limit}, Skipped: ${stats.skippedCharacters}, Errors: ${stats.errors}`,
         );
 
         // 上限到達チェック（キー完了後）

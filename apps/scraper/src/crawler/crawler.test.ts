@@ -67,7 +67,7 @@ describe('crawler', () => {
     it('進捗に基づいて再開位置を決定する', async () => {
       mockLoadProgress.mockResolvedValue({
         crawlerName: 'test',
-        lastCompletedIndex: 0,
+        lastCompletedShuffledIndex: 0,
         totalKeys: 2,
         processedCharacters: 10,
         updatedAt: '2026-01-15T00:00:00.000Z',
@@ -78,8 +78,57 @@ describe('crawler', () => {
 
       const stats = await crawler.start();
 
-      // インデックス0は完了済みなので、インデックス1から開始
+      // シャッフル後の配列位置0は完了済みなので、位置1から開始
       expect(stats.processedKeys).toBe(1);
+    });
+
+    it('シャッフル後の配列位置で正しく再開する', async () => {
+      // シャッフル後の配列: [index:5000, index:2000, index:8000]
+      // 元の連番とシャッフル後の位置が異なる場合のテスト
+      const shuffledKeys = [
+        { index: 5000, worldname: 'Tiamat', classjob: 19, raceTribe: 'tribe_1', gcid: 1 },
+        { index: 2000, worldname: 'Tiamat', classjob: 19, raceTribe: 'tribe_1', gcid: 2 },
+        { index: 8000, worldname: 'Tiamat', classjob: 19, raceTribe: 'tribe_1', gcid: 3 },
+      ];
+
+      // シャッフル後の位置0（index:5000）は完了済み
+      mockLoadProgress.mockResolvedValue({
+        crawlerName: 'test',
+        lastCompletedShuffledIndex: 0,
+        totalKeys: 3,
+        processedCharacters: 5,
+        updatedAt: '2026-01-15T00:00:00.000Z',
+        seed: 42,
+      });
+
+      const deps = createMockDeps({
+        keyGenerator: {
+          generateAll: vi.fn().mockReturnValue(shuffledKeys),
+          getTotalCount: vi.fn().mockReturnValue(3),
+        },
+      });
+      const crawler = createCrawler({ crawlerName: 'test', dryRun: false }, deps);
+
+      await crawler.start();
+
+      // 位置1（index:2000）と位置2（index:8000）の2キーが処理される
+      expect(deps.listFetcher.fetchAllCharacterIds).toHaveBeenCalledTimes(2);
+      expect(deps.listFetcher.fetchAllCharacterIds).toHaveBeenCalledWith(shuffledKeys[1]);
+      expect(deps.listFetcher.fetchAllCharacterIds).toHaveBeenCalledWith(shuffledKeys[2]);
+
+      // 位置0（index:5000）は呼ばれない（旧バグでは元の連番で判定していたため失敗していた）
+      expect(deps.listFetcher.fetchAllCharacterIds).not.toHaveBeenCalledWith(shuffledKeys[0]);
+
+      // 進捗保存はシャッフル後の配列位置（1と2）で行われる
+      expect(mockSaveProgress).toHaveBeenCalledTimes(2);
+      expect(mockSaveProgress).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ lastCompletedShuffledIndex: 1 }),
+      );
+      expect(mockSaveProgress).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ lastCompletedShuffledIndex: 2 }),
+      );
     });
 
     it('既存キャラクターをスキップする', async () => {

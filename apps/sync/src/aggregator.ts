@@ -99,7 +99,7 @@ export function createAggregator(deps: AggregatorDependencies): Aggregator {
 
     /**
      * scraper が全完了しているか確認
-     * crawl_progress の lastCompletedIndex が totalKeys - 1 以上なら完了
+     * crawl_progress の lastCompletedShuffledIndex が totalKeys - 1 以上なら完了
      */
     async isCrawlComplete(): Promise<boolean> {
       const result = await db.select().from(crawlProgress).limit(1);
@@ -110,7 +110,7 @@ export function createAggregator(deps: AggregatorDependencies): Aggregator {
       }
 
       const progress = result[0]!.progress;
-      return progress.lastCompletedIndex >= progress.totalKeys - 1;
+      return progress.lastCompletedShuffledIndex >= progress.totalKeys - 1;
     },
 
     /**

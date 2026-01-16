@@ -1,14 +1,17 @@
 import type { Database } from '@mirapuri/shared/db';
 import { crawlProgress } from '@mirapuri/shared/schema';
 import { eq } from 'drizzle-orm';
-import { DEFAULT_SEED } from './shuffle';
 
 /**
  * 進捗データ
  */
 export interface ProgressData {
   crawlerName: string;
-  lastCompletedIndex: number;
+  /**
+   * シャッフル後の配列における最後に完了した位置（0始まり）
+   * 再開時は lastCompletedShuffledIndex + 1 から開始する
+   */
+  lastCompletedShuffledIndex: number;
   totalKeys: number;
   processedCharacters: number;
   updatedAt: string;
@@ -21,7 +24,10 @@ export interface ProgressData {
  */
 export interface ProgressSaveData {
   crawlerName: string;
-  lastCompletedIndex: number;
+  /**
+   * シャッフル後の配列における最後に完了した位置（0始まり）
+   */
+  lastCompletedShuffledIndex: number;
   totalKeys: number;
   processedCharacters: number;
   /** シャッフル用シード値 */
@@ -48,12 +54,11 @@ export async function loadProgress(
   const row = result[0]!;
   return {
     crawlerName: row.crawlerName,
-    lastCompletedIndex: row.progress.lastCompletedIndex,
+    lastCompletedShuffledIndex: row.progress.lastCompletedShuffledIndex,
     totalKeys: row.progress.totalKeys,
     processedCharacters: row.progress.processedCharacters,
     updatedAt: row.updatedAt.toISOString(),
-    // 後方互換: seed未設定の既存データはデフォルト値を使用
-    seed: row.progress.seed ?? DEFAULT_SEED,
+    seed: row.progress.seed,
   };
 }
 
@@ -62,7 +67,7 @@ export async function loadProgress(
  */
 export async function saveProgress(db: Database, data: ProgressSaveData): Promise<void> {
   const progressJson = {
-    lastCompletedIndex: data.lastCompletedIndex,
+    lastCompletedShuffledIndex: data.lastCompletedShuffledIndex,
     totalKeys: data.totalKeys,
     processedCharacters: data.processedCharacters,
     seed: data.seed,

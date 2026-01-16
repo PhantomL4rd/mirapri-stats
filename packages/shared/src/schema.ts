@@ -63,11 +63,11 @@ export const crawlProgress = pgTable('crawl_progress', {
   crawlerName: varchar('crawler_name', { length: 100 }).primaryKey(),
   /** 進捗データ（JSONB） */
   progress: jsonb('progress').notNull().$type<{
-    lastCompletedIndex: number;
+    /** シャッフル後の配列位置 */
+    lastCompletedShuffledIndex: number;
     totalKeys: number;
     processedCharacters: number;
-    /** シャッフル用シード値（後方互換のためオプショナル） */
-    seed?: number;
+    seed: number;
   }>(),
   /** 更新日時 */
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

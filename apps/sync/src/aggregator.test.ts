@@ -197,11 +197,16 @@ describe('Aggregator', () => {
     it('進捗が完了していればtrueを返す', async () => {
       const mockSelect = vi.fn(() => ({
         from: vi.fn(() => ({
-          limit: vi
-            .fn()
-            .mockResolvedValue([
-              { progress: { lastCompletedIndex: 99, totalKeys: 100, processedCharacters: 1000 } },
-            ]),
+          limit: vi.fn().mockResolvedValue([
+            {
+              progress: {
+                lastCompletedShuffledIndex: 99,
+                totalKeys: 100,
+                processedCharacters: 1000,
+                seed: 42,
+              },
+            },
+          ]),
         })),
       }));
       const mockDb = { select: mockSelect } as unknown as AggregatorDependencies['db'];
@@ -215,11 +220,16 @@ describe('Aggregator', () => {
     it('進捗が未完了ならfalseを返す', async () => {
       const mockSelect = vi.fn(() => ({
         from: vi.fn(() => ({
-          limit: vi
-            .fn()
-            .mockResolvedValue([
-              { progress: { lastCompletedIndex: 50, totalKeys: 100, processedCharacters: 500 } },
-            ]),
+          limit: vi.fn().mockResolvedValue([
+            {
+              progress: {
+                lastCompletedShuffledIndex: 50,
+                totalKeys: 100,
+                processedCharacters: 500,
+                seed: 42,
+              },
+            },
+          ]),
         })),
       }));
       const mockDb = { select: mockSelect } as unknown as AggregatorDependencies['db'];
