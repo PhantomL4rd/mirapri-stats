@@ -60,11 +60,15 @@ export interface AggregatedPair {
 }
 
 /**
- * Worker Client 設定
+ * Writer Client 設定
  */
-export interface WorkerClientConfig {
+export interface WriterClientConfig {
   baseUrl: string;
   authToken: string;
+  /** Cloudflare Access Client ID (オプション) */
+  cfAccessClientId?: string;
+  /** Cloudflare Access Client Secret (オプション) */
+  cfAccessClientSecret?: string;
   retryCount?: number;
   chunkSizes?: {
     items?: number;
@@ -74,9 +78,9 @@ export interface WorkerClientConfig {
 }
 
 /**
- * Worker API レスポンス（共通）
+ * Writer API レスポンス（共通）
  */
-export interface WorkerResponse {
+export interface WriterResponse {
   success: boolean;
   inserted?: number;
   skipped?: number;

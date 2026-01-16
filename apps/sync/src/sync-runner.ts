@@ -1,10 +1,10 @@
 import type { Aggregator } from './aggregator.js';
 import type { SyncOptions, SyncProgress, SyncResult } from './types.js';
-import type { WorkerClient } from './worker-client.js';
+import type { WriterClient } from './writer-client.js';
 
 export interface SyncRunnerDependencies {
   aggregator: Aggregator;
-  client: WorkerClient;
+  client: WriterClient;
   onProgress?: (progress: SyncProgress) => void;
 }
 

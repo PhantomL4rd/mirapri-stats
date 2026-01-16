@@ -35,4 +35,6 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           WORKER_URL: ${{ secrets.WORKER_URL }}
           WORKER_AUTH_TOKEN: ${{ secrets.WORKER_AUTH_TOKEN }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: pnpm -F @mirapuri/sync start

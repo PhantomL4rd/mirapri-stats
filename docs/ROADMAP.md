@@ -95,7 +95,8 @@
 
 **目的**: ユーザーが装備の組み合わせを検索できるUIを提供
 
-- [ ] HonoX セットアップ（既存 Worker から移行）
+- [ ] **apps/frontend 新規作成**（既存 Worker とは別の Worker として作成）
+- [ ] HonoX セットアップ
 - [ ] 装備検索ページ
 - [ ] 組み合わせランキング表示
 - [ ] Lodestone へのリンク
@@ -104,8 +105,15 @@
 ### 技術選定: HonoX
 
 - **理由**: 既存の Hono エコシステムを活かしつつフルスタック化
-- **構成**: HonoX on Cloudflare Workers + D1 直接アクセス
+- **構成**: HonoX on Cloudflare Workers（apps/frontend）+ D1 読み取り専用
 - **レンダリング**: SSR (JSX) + Islands アーキテクチャ
+
+### Worker 構成
+
+```
+[apps/writer]    → D1 書き込み API（Cloudflare Access 保護、GH Actions からのみ）
+[apps/frontend]  → ユーザー向け UI（公開、D1 読み取り専用）
+```
 
 ### UI/UX 方針
 
@@ -124,6 +132,7 @@
 - [x] Cloudflare Worker デプロイ
 - [x] Supabase Keep-Alive GH Action（週2回）
 - [x] Sync GH Action（手動実行）
+- [ ] **apps/worker → apps/writer リネーム + Cloudflare Access 保護**（`worker-separation` spec）
 - [ ] クロールスケジューラ（キュー型）
 - [ ] 名前決め
 

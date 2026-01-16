@@ -2,13 +2,13 @@ import type {
   AggregatedPair,
   AggregatedUsage,
   ExtractedItem,
-  WorkerClientConfig,
-  WorkerResponse,
+  WriterClientConfig,
+  WriterResponse,
 } from './types.js';
 
 /**
  * バッチサイズ（件数）
- * Worker APIへの1リクエストあたりの最大件数
+ * Writer APIへの1リクエストあたりの最大件数
  */
 const DEFAULT_ITEMS_CHUNK_SIZE = 500;
 const DEFAULT_USAGE_CHUNK_SIZE = 1000;
@@ -31,7 +31,7 @@ const DEFAULT_RETRY_COUNT = 3;
  */
 const DEFAULT_RETRY_DELAY_MS = 1000;
 
-export interface WorkerClient {
+export interface WriterClient {
   /** sync セッション開始、新バージョンを返す */
   startSync(): Promise<{ version: string }>;
   /** sync コミット、active_version を切り替え */
@@ -47,14 +47,33 @@ export interface WorkerClient {
 }
 
 /**
- * WorkerClient Factory
+ * WriterClient Factory
  */
-export function createWorkerClient(config: WorkerClientConfig): WorkerClient {
+export function createWriterClient(config: WriterClientConfig): WriterClient {
   const chunkSizes = {
     ...DEFAULT_CHUNK_SIZES,
     ...config.chunkSizes,
   };
   const retryCount = config.retryCount ?? DEFAULT_RETRY_COUNT;
+
+  /**
+   * 共通ヘッダーを生成する
+   * Cloudflare Access の認証情報が両方設定されている場合のみヘッダーを追加
+   */
+  function getHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${config.authToken}`,
+      'Content-Type': 'application/json',
+    };
+
+    // 両方の認証情報が設定されている場合のみ CF-Access ヘッダーを追加
+    if (config.cfAccessClientId && config.cfAccessClientSecret) {
+      headers['CF-Access-Client-Id'] = config.cfAccessClientId;
+      headers['CF-Access-Client-Secret'] = config.cfAccessClientSecret;
+    }
+
+    return headers;
+  }
 
   async function fetchWithRetry(
     url: string,
@@ -71,6 +90,10 @@ export function createWorkerClient(config: WorkerClientConfig): WorkerClient {
           throw new Error('Unauthorized: Invalid AUTH_TOKEN');
         }
 
+        if (response.status === 403) {
+          throw new Error('Forbidden: Invalid Cloudflare Access credentials');
+        }
+
         if (response.status >= 500) {
           throw new Error(`Server error: ${response.status}`);
         }
@@ -80,6 +103,9 @@ export function createWorkerClient(config: WorkerClientConfig): WorkerClient {
         lastError = error as Error;
         if ((error as Error).message.includes('Unauthorized')) {
           throw error; // 認証エラーは即座に終了
+        }
+        if ((error as Error).message.includes('Forbidden')) {
+          throw error; // CF Access 認証エラーは即座に終了
         }
         if (i < attempts - 1) {
           const delay = DEFAULT_RETRY_DELAY_MS * 2 ** i; // exponential backoff
@@ -103,10 +129,7 @@ export function createWorkerClient(config: WorkerClientConfig): WorkerClient {
     async startSync(): Promise<{ version: string }> {
       const response = await fetchWithRetry(`${config.baseUrl}/api/sync/start`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${config.authToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: getHeaders(),
         body: JSON.stringify({}),
       });
 
@@ -122,10 +145,7 @@ export function createWorkerClient(config: WorkerClientConfig): WorkerClient {
     async commitSync(version: string): Promise<void> {
       const response = await fetchWithRetry(`${config.baseUrl}/api/sync/commit`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${config.authToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: getHeaders(),
         body: JSON.stringify({ version }),
       });
 
@@ -138,10 +158,7 @@ export function createWorkerClient(config: WorkerClientConfig): WorkerClient {
     async abortSync(version: string): Promise<void> {
       const response = await fetchWithRetry(`${config.baseUrl}/api/sync/abort`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${config.authToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: getHeaders(),
         body: JSON.stringify({ version }),
       });
 
@@ -159,10 +176,7 @@ export function createWorkerClient(config: WorkerClientConfig): WorkerClient {
       for (const batch of chunks) {
         const response = await fetchWithRetry(`${config.baseUrl}/api/items`, {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${config.authToken}`,
-            'Content-Type': 'application/json',
-          },
+          headers: getHeaders(),
           body: JSON.stringify({
             items: batch.map((item) => ({
               id: item.id,
@@ -177,7 +191,7 @@ export function createWorkerClient(config: WorkerClientConfig): WorkerClient {
           throw new Error(`Failed to post items: ${response.status} - ${errorBody}`);
         }
 
-        const result = (await response.json()) as WorkerResponse;
+        const result = (await response.json()) as WriterResponse;
         totalInserted += result.inserted ?? 0;
         totalSkipped += result.skipped ?? 0;
       }
@@ -192,10 +206,7 @@ export function createWorkerClient(config: WorkerClientConfig): WorkerClient {
       for (const batch of chunks) {
         const response = await fetchWithRetry(`${config.baseUrl}/api/usage?version=${version}`, {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${config.authToken}`,
-            'Content-Type': 'application/json',
-          },
+          headers: getHeaders(),
           body: JSON.stringify({
             usage: batch.map((item) => ({
               slotId: item.slotId,
@@ -210,7 +221,7 @@ export function createWorkerClient(config: WorkerClientConfig): WorkerClient {
           throw new Error(`Failed to post usage: ${response.status} - ${errorBody}`);
         }
 
-        const result = (await response.json()) as WorkerResponse;
+        const result = (await response.json()) as WriterResponse;
         totalInserted += result.inserted ?? 0;
       }
 
@@ -224,10 +235,7 @@ export function createWorkerClient(config: WorkerClientConfig): WorkerClient {
       for (const batch of chunks) {
         const response = await fetchWithRetry(`${config.baseUrl}/api/pairs?version=${version}`, {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${config.authToken}`,
-            'Content-Type': 'application/json',
-          },
+          headers: getHeaders(),
           body: JSON.stringify({
             pairs: batch.map((item) => ({
               slotPair: item.slotPair,
@@ -244,7 +252,7 @@ export function createWorkerClient(config: WorkerClientConfig): WorkerClient {
           throw new Error(`Failed to post pairs: ${response.status} - ${errorBody}`);
         }
 
-        const result = (await response.json()) as WorkerResponse;
+        const result = (await response.json()) as WriterResponse;
         totalInserted += result.inserted ?? 0;
       }
 

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AggregatedPair, AggregatedUsage, ExtractedItem } from './types.js';
-import { createWorkerClient, type WorkerClient } from './worker-client.js';
+import { createWriterClient, type WriterClient } from './writer-client.js';
 
 // Mock global fetch
 const mockFetch = vi.fn();
@@ -18,12 +18,12 @@ const createMockResponse = (
     text: () => Promise.resolve(JSON.stringify(body)),
   }) as Response;
 
-describe('WorkerClient', () => {
-  let client: WorkerClient;
+describe('WriterClient', () => {
+  let client: WriterClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    client = createWorkerClient({
+    client = createWriterClient({
       baseUrl: 'https://api.example.com',
       authToken: 'test-token',
     });
@@ -128,7 +128,7 @@ describe('WorkerClient', () => {
     });
 
     it('カスタムチャンクサイズを設定できる', async () => {
-      const customClient = createWorkerClient({
+      const customClient = createWriterClient({
         baseUrl: 'https://api.example.com',
         authToken: 'test-token',
         chunkSizes: { items: 100 },
@@ -227,7 +227,7 @@ describe('WorkerClient', () => {
 
   describe('リトライロジック', () => {
     it('5xxエラーはリトライする', async () => {
-      const clientWithNoDelay = createWorkerClient({
+      const clientWithNoDelay = createWriterClient({
         baseUrl: 'https://api.example.com',
         authToken: 'test-token',
       });
@@ -254,7 +254,7 @@ describe('WorkerClient', () => {
     });
 
     it('リトライ回数を超えると失敗する', async () => {
-      const clientWith2Retries = createWorkerClient({
+      const clientWith2Retries = createWriterClient({
         baseUrl: 'https://api.example.com',
         authToken: 'test-token',
         retryCount: 2,
@@ -301,6 +301,121 @@ describe('WorkerClient', () => {
 
       expect(result).toEqual({ inserted: 0 });
       expect(mockFetch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Cloudflare Access 認証ヘッダー', () => {
+    it('cfAccessClientId と cfAccessClientSecret が設定されている場合、CF-Access ヘッダーを付与する', async () => {
+      const clientWithCfAccess = createWriterClient({
+        baseUrl: 'https://api.example.com',
+        authToken: 'test-token',
+        cfAccessClientId: 'test-client-id',
+        cfAccessClientSecret: 'test-client-secret',
+      });
+
+      mockFetch.mockResolvedValue(
+        createMockResponse(200, { success: true, version: 'test-version-123' }),
+      );
+
+      await clientWithCfAccess.startSync();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.example.com/api/sync/start',
+        expect.objectContaining({
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-token',
+            'Content-Type': 'application/json',
+            'CF-Access-Client-Id': 'test-client-id',
+            'CF-Access-Client-Secret': 'test-client-secret',
+          },
+        }),
+      );
+    });
+
+    it('cfAccessClientId のみ設定されている場合、CF-Access ヘッダーを付与しない', async () => {
+      const clientWithPartialCfAccess = createWriterClient({
+        baseUrl: 'https://api.example.com',
+        authToken: 'test-token',
+        cfAccessClientId: 'test-client-id',
+      });
+
+      mockFetch.mockResolvedValue(
+        createMockResponse(200, { success: true, version: 'test-version-123' }),
+      );
+
+      await clientWithPartialCfAccess.startSync();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.example.com/api/sync/start',
+        expect.objectContaining({
+          headers: {
+            Authorization: 'Bearer test-token',
+            'Content-Type': 'application/json',
+          },
+        }),
+      );
+    });
+
+    it('cfAccess 設定なしの場合、CF-Access ヘッダーを付与しない（後方互換性）', async () => {
+      mockFetch.mockResolvedValue(
+        createMockResponse(200, { success: true, version: 'test-version-123' }),
+      );
+
+      await client.startSync();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.example.com/api/sync/start',
+        expect.objectContaining({
+          headers: {
+            Authorization: 'Bearer test-token',
+            'Content-Type': 'application/json',
+          },
+        }),
+      );
+    });
+
+    it('postItems でも CF-Access ヘッダーが付与される', async () => {
+      const clientWithCfAccess = createWriterClient({
+        baseUrl: 'https://api.example.com',
+        authToken: 'test-token',
+        cfAccessClientId: 'test-client-id',
+        cfAccessClientSecret: 'test-client-secret',
+      });
+
+      mockFetch.mockResolvedValue(createMockResponse(200, { inserted: 1, skipped: 0 }));
+
+      await clientWithCfAccess.postItems([{ id: 'item1', name: 'Name1', slotId: 1 }]);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.example.com/api/items',
+        expect.objectContaining({
+          headers: {
+            Authorization: 'Bearer test-token',
+            'Content-Type': 'application/json',
+            'CF-Access-Client-Id': 'test-client-id',
+            'CF-Access-Client-Secret': 'test-client-secret',
+          },
+        }),
+      );
+    });
+
+    it('403 エラーは Cloudflare Access 認証エラーとして処理する', async () => {
+      const clientWithCfAccess = createWriterClient({
+        baseUrl: 'https://api.example.com',
+        authToken: 'test-token',
+        cfAccessClientId: 'invalid-client-id',
+        cfAccessClientSecret: 'invalid-client-secret',
+      });
+
+      mockFetch.mockResolvedValue(createMockResponse(403, { error: 'Forbidden' }, false));
+
+      const items: ExtractedItem[] = [{ id: 'item1', name: 'Name1', slotId: 1 }];
+
+      await expect(clientWithCfAccess.postItems(items)).rejects.toThrow(
+        'Forbidden: Invalid Cloudflare Access credentials',
+      );
+      expect(mockFetch).toHaveBeenCalledTimes(1);
     });
   });
 });

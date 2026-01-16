@@ -4,7 +4,7 @@ import { Command } from 'commander';
 import { createAggregator } from './aggregator.js';
 import { formatProgress, runSync } from './sync-runner.js';
 import type { SyncOptions } from './types.js';
-import { createWorkerClient } from './worker-client.js';
+import { createWriterClient } from './writer-client.js';
 
 const program = new Command();
 
@@ -34,17 +34,24 @@ program
     const workerUrl = getEnv('WORKER_URL');
     const workerAuthToken = getEnv('WORKER_AUTH_TOKEN');
 
+    // Cloudflare Access 認証情報（オプション）
+    const cfAccessClientId = process.env['CF_ACCESS_CLIENT_ID'];
+    const cfAccessClientSecret = process.env['CF_ACCESS_CLIENT_SECRET'];
+    const hasCfAccess = cfAccessClientId && cfAccessClientSecret;
+
     console.log('Starting sync...');
     console.log(`  - items-only: ${options.itemsOnly}`);
     console.log(`  - stats-only: ${options.statsOnly}`);
     console.log(`  - dry-run: ${options.dryRun}`);
+    console.log(`  - cf-access: ${hasCfAccess ? 'enabled' : 'disabled'}`);
     console.log();
 
     const db = createDb(databaseUrl);
     const aggregator = createAggregator({ db });
-    const client = createWorkerClient({
+    const client = createWriterClient({
       baseUrl: workerUrl,
       authToken: workerAuthToken,
+      ...(hasCfAccess && { cfAccessClientId, cfAccessClientSecret }),
     });
 
     try {

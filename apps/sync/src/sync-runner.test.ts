@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Aggregator } from './aggregator.js';
 import { formatProgress, runSync, type SyncRunnerDependencies } from './sync-runner.js';
-import type { WorkerClient } from './worker-client.js';
+import type { WriterClient } from './writer-client.js';
 
 describe('runSync', () => {
   let mockAggregator: Aggregator;
-  let mockClient: WorkerClient;
+  let mockClient: WriterClient;
   let deps: SyncRunnerDependencies;
   let progressLogs: string[];
 
