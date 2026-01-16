@@ -60,8 +60,8 @@ program
       console.log();
       console.log('=== Sync Complete ===');
       console.log(`Items: ${result.itemsInserted} inserted, ${result.itemsSkipped} skipped`);
-      console.log(`Usage: ${result.usageUpserted} upserted`);
-      console.log(`Pairs: ${result.pairsUpserted} upserted`);
+      console.log(`Usage: ${result.usageInserted} inserted`);
+      console.log(`Pairs: ${result.pairsInserted} inserted`);
 
       if (result.errors.length > 0) {
         console.log();

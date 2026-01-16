@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { authMiddleware } from './middleware/auth.js';
 import { itemsRoute } from './routes/items.js';
 import { pairsRoute } from './routes/pairs.js';
+import { syncRoute } from './routes/sync.js';
 import { usageRoute } from './routes/usage.js';
 import type { Env } from './types.js';
 
@@ -16,6 +17,7 @@ api.use('/*', authMiddleware);
 api.route('/items', itemsRoute);
 api.route('/usage', usageRoute);
 api.route('/pairs', pairsRoute);
+api.route('/sync', syncRoute);
 
 app.route('/api', api);
 

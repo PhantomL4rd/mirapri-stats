@@ -1,5 +1,4 @@
-import { itemUsage } from '@mirapuri/shared/d1-schema';
-import { sql } from 'drizzle-orm';
+import { usage } from '@mirapuri/shared/d1-schema';
 import { drizzle } from 'drizzle-orm/d1';
 import { Hono } from 'hono';
 import type { Env, UsageRequest, UsageResponse } from '../types.js';
@@ -7,10 +6,16 @@ import type { Env, UsageRequest, UsageResponse } from '../types.js';
 export const usageRoute = new Hono<{ Bindings: Env }>();
 
 /**
- * POST /api/usage
- * 使用回数データを一括 UPSERT（ON CONFLICT DO UPDATE）
+ * POST /api/usage?version=xxx
+ * 使用回数データを一括 INSERT（バージョン付き）
  */
 usageRoute.post('/', async (c) => {
+  const version = c.req.query('version');
+
+  if (!version) {
+    return c.json({ error: 'version query parameter is required' }, 400);
+  }
+
   const body = await c.req.json<UsageRequest>();
 
   if (!body.usage || !Array.isArray(body.usage)) {
@@ -18,6 +23,9 @@ usageRoute.post('/', async (c) => {
   }
 
   for (const item of body.usage) {
+    if (typeof item.slotId !== 'number' || item.slotId < 1 || item.slotId > 5) {
+      return c.json({ error: 'Each usage must have a slotId between 1 and 5' }, 400);
+    }
     if (!item.itemId || typeof item.itemId !== 'string') {
       return c.json({ error: 'Each usage must have a string itemId' }, 400);
     }
@@ -28,25 +36,21 @@ usageRoute.post('/', async (c) => {
 
   const db = drizzle(c.env.DB);
 
-  let upserted = 0;
+  let inserted = 0;
 
   for (const item of body.usage) {
-    await db
-      .insert(itemUsage)
-      .values({
-        itemId: item.itemId,
-        usageCount: item.usageCount,
-      })
-      .onConflictDoUpdate({
-        target: itemUsage.itemId,
-        set: { usageCount: sql`excluded.usage_count` },
-      });
-    upserted++;
+    await db.insert(usage).values({
+      version,
+      slotId: item.slotId,
+      itemId: item.itemId,
+      usageCount: item.usageCount,
+    });
+    inserted++;
   }
 
   const response: UsageResponse = {
     success: true,
-    upserted,
+    inserted,
   };
 
   return c.json(response);

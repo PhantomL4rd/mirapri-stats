@@ -29,6 +29,62 @@ describe('WorkerClient', () => {
     });
   });
 
+  describe('startSync', () => {
+    it('正常にsyncセッションを開始しバージョンを返す', async () => {
+      mockFetch.mockResolvedValue(
+        createMockResponse(200, { success: true, version: 'test-version-123' }),
+      );
+
+      const result = await client.startSync();
+
+      expect(result).toEqual({ version: 'test-version-123' });
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.example.com/api/sync/start',
+        expect.objectContaining({
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-token',
+            'Content-Type': 'application/json',
+          },
+        }),
+      );
+    });
+  });
+
+  describe('commitSync', () => {
+    it('正常にsyncをコミットする', async () => {
+      mockFetch.mockResolvedValue(
+        createMockResponse(200, { success: true, previousVersion: '0', newVersion: 'v1' }),
+      );
+
+      await client.commitSync('v1');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.example.com/api/sync/commit',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ version: 'v1' }),
+        }),
+      );
+    });
+  });
+
+  describe('abortSync', () => {
+    it('正常にsyncを中断する', async () => {
+      mockFetch.mockResolvedValue(createMockResponse(200, { success: true, deletedVersion: 'v1' }));
+
+      await client.abortSync('v1');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.example.com/api/sync/abort',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ version: 'v1' }),
+        }),
+      );
+    });
+  });
+
   describe('postItems', () => {
     it('正常にアイテムをPOSTする', async () => {
       mockFetch.mockResolvedValue(createMockResponse(200, { inserted: 3, skipped: 0 }));
@@ -95,63 +151,64 @@ describe('WorkerClient', () => {
   });
 
   describe('postUsage', () => {
-    it('正常に使用データをPOSTする', async () => {
-      mockFetch.mockResolvedValue(createMockResponse(200, { upserted: 3 }));
+    it('正常に使用データをPOSTする（version付き）', async () => {
+      mockFetch.mockResolvedValue(createMockResponse(200, { inserted: 3 }));
 
       const usage: AggregatedUsage[] = [
-        { itemId: 'item1', usageCount: 100 },
-        { itemId: 'item2', usageCount: 50 },
-        { itemId: 'item3', usageCount: 25 },
+        { slotId: 1, itemId: 'item1', usageCount: 100 },
+        { slotId: 2, itemId: 'item2', usageCount: 50 },
+        { slotId: 3, itemId: 'item3', usageCount: 25 },
       ];
 
-      const result = await client.postUsage(usage);
+      const result = await client.postUsage('test-version', usage);
 
-      expect(result).toEqual({ upserted: 3 });
+      expect(result).toEqual({ inserted: 3 });
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.example.com/api/usage',
+        'https://api.example.com/api/usage?version=test-version',
         expect.anything(),
       );
     });
 
     it('1000件を超えるデータはチャンク分割される', async () => {
       mockFetch
-        .mockResolvedValueOnce(createMockResponse(200, { upserted: 1000 }))
-        .mockResolvedValueOnce(createMockResponse(200, { upserted: 500 }));
+        .mockResolvedValueOnce(createMockResponse(200, { inserted: 1000 }))
+        .mockResolvedValueOnce(createMockResponse(200, { inserted: 500 }));
 
       const usage: AggregatedUsage[] = Array.from({ length: 1500 }, (_, i) => ({
+        slotId: (i % 5) + 1,
         itemId: `item${i}`,
         usageCount: i,
       }));
 
-      const result = await client.postUsage(usage);
+      const result = await client.postUsage('v1', usage);
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
-      expect(result).toEqual({ upserted: 1500 });
+      expect(result).toEqual({ inserted: 1500 });
     });
   });
 
   describe('postPairs', () => {
-    it('正常にペアデータをPOSTする', async () => {
-      mockFetch.mockResolvedValue(createMockResponse(200, { upserted: 2 }));
+    it('正常にペアデータをPOSTする（version付き）', async () => {
+      mockFetch.mockResolvedValue(createMockResponse(200, { inserted: 2 }));
 
       const pairs: AggregatedPair[] = [
         { slotPair: 'head-body', itemIdA: 'item1', itemIdB: 'item2', pairCount: 10, rank: 1 },
         { slotPair: 'body-hands', itemIdA: 'item3', itemIdB: 'item4', pairCount: 5, rank: 1 },
       ];
 
-      const result = await client.postPairs(pairs);
+      const result = await client.postPairs('test-version', pairs);
 
-      expect(result).toEqual({ upserted: 2 });
+      expect(result).toEqual({ inserted: 2 });
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.example.com/api/pairs',
+        'https://api.example.com/api/pairs?version=test-version',
         expect.anything(),
       );
     });
 
     it('1000件を超えるデータはチャンク分割される', async () => {
       mockFetch
-        .mockResolvedValueOnce(createMockResponse(200, { upserted: 1000 }))
-        .mockResolvedValueOnce(createMockResponse(200, { upserted: 200 }));
+        .mockResolvedValueOnce(createMockResponse(200, { inserted: 1000 }))
+        .mockResolvedValueOnce(createMockResponse(200, { inserted: 200 }));
 
       const pairs: AggregatedPair[] = Array.from({ length: 1200 }, (_, i) => ({
         slotPair: 'head-body' as const,
@@ -161,10 +218,10 @@ describe('WorkerClient', () => {
         rank: (i % 10) + 1,
       }));
 
-      const result = await client.postPairs(pairs);
+      const result = await client.postPairs('v1', pairs);
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
-      expect(result).toEqual({ upserted: 1200 });
+      expect(result).toEqual({ inserted: 1200 });
     });
   });
 
@@ -233,16 +290,16 @@ describe('WorkerClient', () => {
     });
 
     it('空の使用データ配列は0件で返す', async () => {
-      const result = await client.postUsage([]);
+      const result = await client.postUsage('v1', []);
 
-      expect(result).toEqual({ upserted: 0 });
+      expect(result).toEqual({ inserted: 0 });
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it('空のペア配列は0件で返す', async () => {
-      const result = await client.postPairs([]);
+      const result = await client.postPairs('v1', []);
 
-      expect(result).toEqual({ upserted: 0 });
+      expect(result).toEqual({ inserted: 0 });
       expect(mockFetch).not.toHaveBeenCalled();
     });
   });

@@ -30,9 +30,11 @@ export interface ItemsResponse {
 
 /**
  * POST /api/usage リクエスト
+ * Query: ?version=xxx (必須)
  */
 export interface UsageRequest {
   usage: Array<{
+    slotId: number;
     itemId: string;
     usageCount: number;
   }>;
@@ -43,11 +45,12 @@ export interface UsageRequest {
  */
 export interface UsageResponse {
   success: boolean;
-  upserted: number;
+  inserted: number;
 }
 
 /**
  * POST /api/pairs リクエスト
+ * Query: ?version=xxx (必須)
  */
 export interface PairsRequest {
   pairs: Array<{
@@ -64,5 +67,44 @@ export interface PairsRequest {
  */
 export interface PairsResponse {
   success: boolean;
-  upserted: number;
+  inserted: number;
+}
+
+/**
+ * POST /api/sync/start レスポンス
+ */
+export interface SyncStartResponse {
+  success: boolean;
+  version: string;
+}
+
+/**
+ * POST /api/sync/commit リクエスト
+ */
+export interface SyncCommitRequest {
+  version: string;
+}
+
+/**
+ * POST /api/sync/commit レスポンス
+ */
+export interface SyncCommitResponse {
+  success: boolean;
+  previousVersion: string;
+  newVersion: string;
+}
+
+/**
+ * POST /api/sync/abort リクエスト
+ */
+export interface SyncAbortRequest {
+  version: string;
+}
+
+/**
+ * POST /api/sync/abort レスポンス
+ */
+export interface SyncAbortResponse {
+  success: boolean;
+  deletedVersion: string;
 }

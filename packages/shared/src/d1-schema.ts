@@ -1,8 +1,26 @@
 import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 /**
+ * メタデータテーブル
+ * active_version など、システム設定を key-value で管理
+ */
+export const meta = sqliteTable('meta', {
+  /** 設定キー */
+  key: text('key').primaryKey(),
+  /** 設定値 */
+  value: text('value').notNull(),
+});
+
+/** SELECT時の型 */
+export type Meta = typeof meta.$inferSelect;
+
+/** INSERT時の型 */
+export type NewMeta = typeof meta.$inferInsert;
+
+/**
  * アイテムマスタテーブル
  * Lodestone から取得した装備情報
+ * バージョン管理対象外（UPSERT で更新）
  */
 export const items = sqliteTable(
   'items',
@@ -24,54 +42,61 @@ export type Item = typeof items.$inferSelect;
 export type NewItem = typeof items.$inferInsert;
 
 /**
- * アイテム使用回数テーブル
- * 各アイテムの使用回数を集計
+ * 使用回数テーブル
+ * 各アイテムの使用回数を集計（バージョン管理対象）
  */
-export const itemUsage = sqliteTable('item_usage', {
-  /** アイテムID（主キー、items.id への外部キー） */
-  itemId: text('item_id')
-    .primaryKey()
-    .references(() => items.id),
-  /** 使用回数 */
-  usageCount: integer('usage_count').notNull().default(0),
-});
-
-/** SELECT時の型 */
-export type ItemUsage = typeof itemUsage.$inferSelect;
-
-/** INSERT時の型 */
-export type NewItemUsage = typeof itemUsage.$inferInsert;
-
-/**
- * ペア組み合わせテーブル
- * 各アイテムの組み合わせ上位10件を保存
- */
-export const itemPairs = sqliteTable(
-  'item_pairs',
+export const usage = sqliteTable(
+  'usage',
   {
-    /** ペア種類（'head-body', 'body-hands', 'body-legs', 'legs-feet'） */
-    slotPair: text('slot_pair').notNull(),
-    /** アイテムA（小さい slot_id 側） */
-    itemIdA: text('item_id_a')
-      .notNull()
-      .references(() => items.id),
-    /** アイテムB（大きい slot_id 側） */
-    itemIdB: text('item_id_b')
-      .notNull()
-      .references(() => items.id),
-    /** ペア出現回数 */
-    pairCount: integer('pair_count').notNull().default(0),
-    /** ランク（1-10） */
-    rank: integer('rank').notNull(),
+    /** バージョン識別子 */
+    version: text('version').notNull(),
+    /** 部位ID */
+    slotId: integer('slot_id').notNull(),
+    /** アイテムID */
+    itemId: text('item_id').notNull(),
+    /** 使用回数 */
+    usageCount: integer('usage_count').notNull(),
   },
   (table) => [
-    primaryKey({ columns: [table.slotPair, table.itemIdA, table.rank] }),
-    index('idx_item_pairs_lookup').on(table.slotPair, table.itemIdA, table.rank),
+    primaryKey({ columns: [table.version, table.slotId, table.itemId] }),
+    index('idx_usage_version_slot').on(table.version, table.slotId),
   ],
 );
 
 /** SELECT時の型 */
-export type ItemPair = typeof itemPairs.$inferSelect;
+export type Usage = typeof usage.$inferSelect;
 
 /** INSERT時の型 */
-export type NewItemPair = typeof itemPairs.$inferInsert;
+export type NewUsage = typeof usage.$inferInsert;
+
+/**
+ * ペア組み合わせテーブル
+ * 各アイテムの組み合わせ上位10件を保存（バージョン管理対象）
+ */
+export const pairs = sqliteTable(
+  'pairs',
+  {
+    /** バージョン識別子 */
+    version: text('version').notNull(),
+    /** ペア種類（'head-body', 'body-hands', 'body-legs', 'legs-feet'） */
+    slotPair: text('slot_pair').notNull(),
+    /** アイテムA（小さい slot_id 側） */
+    itemIdA: text('item_id_a').notNull(),
+    /** アイテムB（大きい slot_id 側） */
+    itemIdB: text('item_id_b').notNull(),
+    /** ペア出現回数 */
+    pairCount: integer('pair_count').notNull(),
+    /** ランク（1-10） */
+    rank: integer('rank').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.version, table.slotPair, table.itemIdA, table.rank] }),
+    index('idx_pairs_version_pair_a').on(table.version, table.slotPair, table.itemIdA),
+  ],
+);
+
+/** SELECT時の型 */
+export type Pairs = typeof pairs.$inferSelect;
+
+/** INSERT時の型 */
+export type NewPairs = typeof pairs.$inferInsert;

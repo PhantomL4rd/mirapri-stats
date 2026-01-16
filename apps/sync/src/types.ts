@@ -15,8 +15,8 @@ export interface SyncOptions {
 export interface SyncResult {
   itemsInserted: number;
   itemsSkipped: number;
-  usageUpserted: number;
-  pairsUpserted: number;
+  usageInserted: number;
+  pairsInserted: number;
   errors: string[];
 }
 
@@ -43,6 +43,7 @@ export interface ExtractedItem {
  * 集計された使用回数
  */
 export interface AggregatedUsage {
+  slotId: number;
   itemId: string;
   usageCount: number;
 }

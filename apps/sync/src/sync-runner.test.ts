@@ -19,8 +19,8 @@ describe('runSync', () => {
         { id: 'item2', name: 'Name2', slotId: 2 },
       ]),
       aggregateUsage: vi.fn().mockResolvedValue([
-        { itemId: 'item1', usageCount: 100 },
-        { itemId: 'item2', usageCount: 50 },
+        { slotId: 1, itemId: 'item1', usageCount: 100 },
+        { slotId: 2, itemId: 'item2', usageCount: 50 },
       ]),
       aggregatePairs: vi
         .fn()
@@ -32,9 +32,12 @@ describe('runSync', () => {
     };
 
     mockClient = {
+      startSync: vi.fn().mockResolvedValue({ version: 'test-version-123' }),
+      commitSync: vi.fn().mockResolvedValue(undefined),
+      abortSync: vi.fn().mockResolvedValue(undefined),
       postItems: vi.fn().mockResolvedValue({ inserted: 2, skipped: 0 }),
-      postUsage: vi.fn().mockResolvedValue({ upserted: 2 }),
-      postPairs: vi.fn().mockResolvedValue({ upserted: 1 }),
+      postUsage: vi.fn().mockResolvedValue({ inserted: 2 }),
+      postPairs: vi.fn().mockResolvedValue({ inserted: 1 }),
     };
 
     deps = {
@@ -52,23 +55,28 @@ describe('runSync', () => {
         dryRun: false,
       });
 
+      // Items 同期
       expect(mockAggregator.extractUniqueItems).toHaveBeenCalled();
+      expect(mockClient.postItems).toHaveBeenCalled();
+
+      // Stats 同期（3フェーズ）
+      expect(mockClient.startSync).toHaveBeenCalled();
       expect(mockAggregator.aggregateUsage).toHaveBeenCalled();
       expect(mockAggregator.aggregatePairs).toHaveBeenCalled();
-      expect(mockClient.postItems).toHaveBeenCalled();
-      expect(mockClient.postUsage).toHaveBeenCalled();
-      expect(mockClient.postPairs).toHaveBeenCalled();
+      expect(mockClient.postUsage).toHaveBeenCalledWith('test-version-123', expect.any(Array));
+      expect(mockClient.postPairs).toHaveBeenCalledWith('test-version-123', expect.any(Array));
+      expect(mockClient.commitSync).toHaveBeenCalledWith('test-version-123');
 
       expect(result.itemsInserted).toBe(2);
       expect(result.itemsSkipped).toBe(0);
-      expect(result.usageUpserted).toBe(2);
-      expect(result.pairsUpserted).toBe(1);
+      expect(result.usageInserted).toBe(2);
+      expect(result.pairsInserted).toBe(1);
       expect(result.errors).toHaveLength(0);
     });
   });
 
   describe('--items-only オプション', () => {
-    it('アイテムのみ同期する', async () => {
+    it('アイテムのみ同期する（バージョン管理なし）', async () => {
       const result = await runSync(deps, {
         itemsOnly: true,
         statsOnly: false,
@@ -78,36 +86,43 @@ describe('runSync', () => {
       expect(mockAggregator.extractUniqueItems).toHaveBeenCalled();
       expect(mockClient.postItems).toHaveBeenCalled();
 
+      // Stats 同期はスキップ
+      expect(mockClient.startSync).not.toHaveBeenCalled();
       expect(mockAggregator.aggregateUsage).not.toHaveBeenCalled();
       expect(mockAggregator.aggregatePairs).not.toHaveBeenCalled();
       expect(mockClient.postUsage).not.toHaveBeenCalled();
       expect(mockClient.postPairs).not.toHaveBeenCalled();
+      expect(mockClient.commitSync).not.toHaveBeenCalled();
 
       expect(result.itemsInserted).toBe(2);
-      expect(result.usageUpserted).toBe(0);
-      expect(result.pairsUpserted).toBe(0);
+      expect(result.usageInserted).toBe(0);
+      expect(result.pairsInserted).toBe(0);
     });
   });
 
   describe('--stats-only オプション', () => {
-    it('統計データのみ同期する', async () => {
+    it('統計データのみ同期する（3フェーズフロー）', async () => {
       const result = await runSync(deps, {
         itemsOnly: false,
         statsOnly: true,
         dryRun: false,
       });
 
+      // Items 同期はスキップ
       expect(mockAggregator.extractUniqueItems).not.toHaveBeenCalled();
       expect(mockClient.postItems).not.toHaveBeenCalled();
 
+      // Stats 同期（3フェーズ）
+      expect(mockClient.startSync).toHaveBeenCalled();
       expect(mockAggregator.aggregateUsage).toHaveBeenCalled();
       expect(mockAggregator.aggregatePairs).toHaveBeenCalled();
-      expect(mockClient.postUsage).toHaveBeenCalled();
-      expect(mockClient.postPairs).toHaveBeenCalled();
+      expect(mockClient.postUsage).toHaveBeenCalledWith('test-version-123', expect.any(Array));
+      expect(mockClient.postPairs).toHaveBeenCalledWith('test-version-123', expect.any(Array));
+      expect(mockClient.commitSync).toHaveBeenCalledWith('test-version-123');
 
       expect(result.itemsInserted).toBe(0);
-      expect(result.usageUpserted).toBe(2);
-      expect(result.pairsUpserted).toBe(1);
+      expect(result.usageInserted).toBe(2);
+      expect(result.pairsInserted).toBe(1);
     });
   });
 
@@ -120,16 +135,17 @@ describe('runSync', () => {
       });
 
       expect(mockAggregator.extractUniqueItems).toHaveBeenCalled();
-      expect(mockAggregator.aggregateUsage).toHaveBeenCalled();
-      expect(mockAggregator.aggregatePairs).toHaveBeenCalled();
 
+      // dry-run 時は同期しない
+      expect(mockClient.startSync).not.toHaveBeenCalled();
       expect(mockClient.postItems).not.toHaveBeenCalled();
       expect(mockClient.postUsage).not.toHaveBeenCalled();
       expect(mockClient.postPairs).not.toHaveBeenCalled();
+      expect(mockClient.commitSync).not.toHaveBeenCalled();
 
       expect(result.itemsInserted).toBe(0);
-      expect(result.usageUpserted).toBe(0);
-      expect(result.pairsUpserted).toBe(0);
+      expect(result.usageInserted).toBe(0);
+      expect(result.pairsInserted).toBe(0);
     });
   });
 
@@ -143,11 +159,12 @@ describe('runSync', () => {
         dryRun: false,
       });
 
-      expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]).toContain('Items sync failed');
+      expect(result.errors).toContainEqual(expect.stringContaining('Items sync failed'));
+      // Items エラーでも Stats 同期は実行される
+      expect(mockClient.startSync).toHaveBeenCalled();
     });
 
-    it('usage同期エラー時にエラーを記録する', async () => {
+    it('usage同期エラー時にabortを呼び出す', async () => {
       vi.mocked(mockClient.postUsage).mockRejectedValue(new Error('Network error'));
 
       const result = await runSync(deps, {
@@ -156,11 +173,12 @@ describe('runSync', () => {
         dryRun: false,
       });
 
-      expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]).toContain('Usage sync failed');
+      expect(result.errors).toContainEqual(expect.stringContaining('Stats sync failed'));
+      expect(mockClient.abortSync).toHaveBeenCalledWith('test-version-123');
+      expect(mockClient.commitSync).not.toHaveBeenCalled();
     });
 
-    it('pairs同期エラー時にエラーを記録する', async () => {
+    it('pairs同期エラー時にabortを呼び出す', async () => {
       vi.mocked(mockClient.postPairs).mockRejectedValue(new Error('Network error'));
 
       const result = await runSync(deps, {
@@ -169,14 +187,14 @@ describe('runSync', () => {
         dryRun: false,
       });
 
-      expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]).toContain('Pairs sync failed');
+      expect(result.errors).toContainEqual(expect.stringContaining('Stats sync failed'));
+      expect(mockClient.abortSync).toHaveBeenCalledWith('test-version-123');
+      expect(mockClient.commitSync).not.toHaveBeenCalled();
     });
 
-    it('複数のエラーを記録できる', async () => {
-      vi.mocked(mockClient.postItems).mockRejectedValue(new Error('Error 1'));
-      vi.mocked(mockClient.postUsage).mockRejectedValue(new Error('Error 2'));
-      vi.mocked(mockClient.postPairs).mockRejectedValue(new Error('Error 3'));
+    it('itemsエラーとstatsエラーを両方記録できる', async () => {
+      vi.mocked(mockClient.postItems).mockRejectedValue(new Error('Items Error'));
+      vi.mocked(mockClient.postUsage).mockRejectedValue(new Error('Stats Error'));
 
       const result = await runSync(deps, {
         itemsOnly: false,
@@ -184,7 +202,24 @@ describe('runSync', () => {
         dryRun: false,
       });
 
-      expect(result.errors).toHaveLength(3);
+      expect(result.errors).toHaveLength(2);
+      expect(result.errors).toContainEqual(expect.stringContaining('Items sync failed'));
+      expect(result.errors).toContainEqual(expect.stringContaining('Stats sync failed'));
+    });
+
+    it('abort自体が失敗してもエラーを記録する', async () => {
+      vi.mocked(mockClient.postUsage).mockRejectedValue(new Error('Usage error'));
+      vi.mocked(mockClient.abortSync).mockRejectedValue(new Error('Abort failed'));
+
+      const result = await runSync(deps, {
+        itemsOnly: false,
+        statsOnly: true,
+        dryRun: false,
+      });
+
+      expect(result.errors).toHaveLength(2);
+      expect(result.errors).toContainEqual(expect.stringContaining('Stats sync failed'));
+      expect(result.errors).toContainEqual(expect.stringContaining('Abort failed'));
     });
   });
 
@@ -255,12 +290,24 @@ describe('runSync', () => {
       expect(mockAggregator.cleanup).toHaveBeenCalled();
     });
 
-    it('エラーがある場合はcleanupをスキップする', async () => {
+    it('itemsエラーがある場合はcleanupをスキップする', async () => {
       vi.mocked(mockClient.postItems).mockRejectedValue(new Error('Error'));
 
       await runSync(deps, {
         itemsOnly: false,
         statsOnly: false,
+        dryRun: false,
+      });
+
+      expect(mockAggregator.cleanup).not.toHaveBeenCalled();
+    });
+
+    it('statsエラーがある場合はcleanupをスキップする', async () => {
+      vi.mocked(mockClient.postUsage).mockRejectedValue(new Error('Error'));
+
+      await runSync(deps, {
+        itemsOnly: false,
+        statsOnly: true,
         dryRun: false,
       });
 

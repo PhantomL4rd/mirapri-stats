@@ -67,6 +67,7 @@ export function createAggregator(deps: AggregatorDependencies): Aggregator {
     async aggregateUsage(): Promise<AggregatedUsage[]> {
       const result = await db
         .select({
+          slotId: charactersGlamour.slotId,
           itemId: charactersGlamour.itemId,
           usageCount: count(),
         })
@@ -75,6 +76,7 @@ export function createAggregator(deps: AggregatorDependencies): Aggregator {
         .having(sql`count(*) >= ${MIN_COUNT_THRESHOLD}`);
 
       return result.map((row) => ({
+        slotId: row.slotId,
         itemId: row.itemId,
         usageCount: Number(row.usageCount),
       }));

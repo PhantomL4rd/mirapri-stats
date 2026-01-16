@@ -5,15 +5,13 @@ import app from './index.js';
 const AUTH_TOKEN = 'test-token';
 
 async function runMigrations(db: D1Database) {
-  await db.exec(
-    `CREATE TABLE IF NOT EXISTS items (id TEXT PRIMARY KEY, name TEXT NOT NULL, slot_id INTEGER NOT NULL CHECK (slot_id BETWEEN 1 AND 5))`,
-  );
-  await db.exec(
-    `CREATE TABLE IF NOT EXISTS item_usage (item_id TEXT PRIMARY KEY REFERENCES items(id), usage_count INTEGER NOT NULL DEFAULT 0)`,
-  );
-  await db.exec(
-    `CREATE TABLE IF NOT EXISTS item_pairs (slot_pair TEXT NOT NULL CHECK (slot_pair IN ('head-body', 'body-hands', 'body-legs', 'legs-feet')), item_id_a TEXT NOT NULL REFERENCES items(id), item_id_b TEXT NOT NULL REFERENCES items(id), pair_count INTEGER NOT NULL DEFAULT 0, rank INTEGER NOT NULL CHECK (rank BETWEEN 1 AND 10), PRIMARY KEY (slot_pair, item_id_a, rank))`,
-  );
+  // meta table (version management)
+  await db.batch([
+    db.prepare(`CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS items (id TEXT PRIMARY KEY, name TEXT NOT NULL, slot_id INTEGER NOT NULL CHECK (slot_id BETWEEN 1 AND 5))`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS usage (version TEXT NOT NULL, slot_id INTEGER NOT NULL, item_id TEXT NOT NULL, usage_count INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (version, slot_id, item_id))`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS pairs (version TEXT NOT NULL, slot_pair TEXT NOT NULL CHECK (slot_pair IN ('head-body', 'body-hands', 'body-legs', 'legs-feet')), item_id_a TEXT NOT NULL, item_id_b TEXT NOT NULL, pair_count INTEGER NOT NULL DEFAULT 0, rank INTEGER NOT NULL CHECK (rank BETWEEN 1 AND 10), PRIMARY KEY (version, slot_pair, item_id_a, rank))`),
+  ]);
 }
 
 describe('Health Check', () => {
@@ -184,10 +182,10 @@ describe('POST /api/usage', () => {
     await env.DB.exec(`INSERT OR IGNORE INTO items VALUES ('item-002', 'Test Body', 2)`);
   });
 
-  it('upserts usage data successfully', async () => {
+  it('inserts usage data successfully', async () => {
     const ctx = createExecutionContext();
     const response = await app.fetch(
-      new Request('http://localhost/api/usage', {
+      new Request('http://localhost/api/usage?version=test-version-001', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${AUTH_TOKEN}`,
@@ -195,8 +193,8 @@ describe('POST /api/usage', () => {
         },
         body: JSON.stringify({
           usage: [
-            { itemId: 'item-001', usageCount: 100 },
-            { itemId: 'item-002', usageCount: 50 },
+            { slotId: 1, itemId: 'item-001', usageCount: 100 },
+            { slotId: 2, itemId: 'item-002', usageCount: 50 },
           ],
         }),
       }),
@@ -208,10 +206,10 @@ describe('POST /api/usage', () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.success).toBe(true);
-    expect(body.upserted).toBe(2);
+    expect(body.inserted).toBe(2);
   });
 
-  it('updates existing usage (idempotent)', async () => {
+  it('returns 400 when version is missing', async () => {
     const ctx = createExecutionContext();
     const response = await app.fetch(
       new Request('http://localhost/api/usage', {
@@ -221,7 +219,7 @@ describe('POST /api/usage', () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          usage: [{ itemId: 'item-001', usageCount: 200 }],
+          usage: [{ slotId: 1, itemId: 'item-001', usageCount: 100 }],
         }),
       }),
       { ...env, AUTH_TOKEN },
@@ -229,22 +227,22 @@ describe('POST /api/usage', () => {
     );
     await waitOnExecutionContext(ctx);
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(400);
     const body = await response.json();
-    expect(body.success).toBe(true);
+    expect(body.error).toContain('version');
   });
 
   it('returns 400 when usageCount is negative', async () => {
     const ctx = createExecutionContext();
     const response = await app.fetch(
-      new Request('http://localhost/api/usage', {
+      new Request('http://localhost/api/usage?version=test-version-001', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${AUTH_TOKEN}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          usage: [{ itemId: 'item-001', usageCount: -1 }],
+          usage: [{ slotId: 1, itemId: 'item-001', usageCount: -1 }],
         }),
       }),
       { ...env, AUTH_TOKEN },
@@ -264,10 +262,10 @@ describe('POST /api/pairs', () => {
     await env.DB.exec(`INSERT OR IGNORE INTO items VALUES ('item-002', 'Test Body', 2)`);
   });
 
-  it('upserts pair data successfully', async () => {
+  it('inserts pair data successfully', async () => {
     const ctx = createExecutionContext();
     const response = await app.fetch(
-      new Request('http://localhost/api/pairs', {
+      new Request('http://localhost/api/pairs?version=test-version-001', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${AUTH_TOKEN}`,
@@ -293,13 +291,44 @@ describe('POST /api/pairs', () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.success).toBe(true);
-    expect(body.upserted).toBe(1);
+    expect(body.inserted).toBe(1);
+  });
+
+  it('returns 400 when version is missing', async () => {
+    const ctx = createExecutionContext();
+    const response = await app.fetch(
+      new Request('http://localhost/api/pairs', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${AUTH_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pairs: [
+            {
+              slotPair: 'head-body',
+              itemIdA: 'item-001',
+              itemIdB: 'item-002',
+              pairCount: 50,
+              rank: 1,
+            },
+          ],
+        }),
+      }),
+      { ...env, AUTH_TOKEN },
+      ctx,
+    );
+    await waitOnExecutionContext(ctx);
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toContain('version');
   });
 
   it('returns 400 for invalid slotPair', async () => {
     const ctx = createExecutionContext();
     const response = await app.fetch(
-      new Request('http://localhost/api/pairs', {
+      new Request('http://localhost/api/pairs?version=test-version-001', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${AUTH_TOKEN}`,
@@ -330,7 +359,7 @@ describe('POST /api/pairs', () => {
   it('returns 400 for invalid rank', async () => {
     const ctx = createExecutionContext();
     const response = await app.fetch(
-      new Request('http://localhost/api/pairs', {
+      new Request('http://localhost/api/pairs?version=test-version-001', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${AUTH_TOKEN}`,
@@ -356,5 +385,160 @@ describe('POST /api/pairs', () => {
     expect(response.status).toBe(400);
     const body = await response.json();
     expect(body.error).toContain('rank');
+  });
+});
+
+describe('Sync Routes', () => {
+  beforeAll(async () => {
+    await runMigrations(env.DB);
+  });
+
+  describe('POST /api/sync/start', () => {
+    it('returns a new version (UUID format)', async () => {
+      const ctx = createExecutionContext();
+      const response = await app.fetch(
+        new Request('http://localhost/api/sync/start', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${AUTH_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+        }),
+        { ...env, AUTH_TOKEN },
+        ctx,
+      );
+      await waitOnExecutionContext(ctx);
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.success).toBe(true);
+      expect(body.version).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+      );
+    });
+  });
+
+  describe('POST /api/sync/commit', () => {
+    it('commits a sync and switches active_version', async () => {
+      // First start a sync to get a version
+      const startCtx = createExecutionContext();
+      const startResponse = await app.fetch(
+        new Request('http://localhost/api/sync/start', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${AUTH_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+        }),
+        { ...env, AUTH_TOKEN },
+        startCtx,
+      );
+      await waitOnExecutionContext(startCtx);
+      const { version } = await startResponse.json();
+
+      // Now commit
+      const ctx = createExecutionContext();
+      const response = await app.fetch(
+        new Request('http://localhost/api/sync/commit', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${AUTH_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ version }),
+        }),
+        { ...env, AUTH_TOKEN },
+        ctx,
+      );
+      await waitOnExecutionContext(ctx);
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.success).toBe(true);
+      expect(body.newVersion).toBe(version);
+    });
+
+    it('returns 400 when version is missing', async () => {
+      const ctx = createExecutionContext();
+      const response = await app.fetch(
+        new Request('http://localhost/api/sync/commit', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${AUTH_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        }),
+        { ...env, AUTH_TOKEN },
+        ctx,
+      );
+      await waitOnExecutionContext(ctx);
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toContain('version');
+    });
+  });
+
+  describe('POST /api/sync/abort', () => {
+    it('aborts a sync and deletes partial data', async () => {
+      // Start a sync
+      const startCtx = createExecutionContext();
+      const startResponse = await app.fetch(
+        new Request('http://localhost/api/sync/start', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${AUTH_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+        }),
+        { ...env, AUTH_TOKEN },
+        startCtx,
+      );
+      await waitOnExecutionContext(startCtx);
+      const { version } = await startResponse.json();
+
+      // Abort the sync
+      const ctx = createExecutionContext();
+      const response = await app.fetch(
+        new Request('http://localhost/api/sync/abort', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${AUTH_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ version }),
+        }),
+        { ...env, AUTH_TOKEN },
+        ctx,
+      );
+      await waitOnExecutionContext(ctx);
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.success).toBe(true);
+      expect(body.deletedVersion).toBe(version);
+    });
+
+    it('returns 400 when version is missing', async () => {
+      const ctx = createExecutionContext();
+      const response = await app.fetch(
+        new Request('http://localhost/api/sync/abort', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${AUTH_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        }),
+        { ...env, AUTH_TOKEN },
+        ctx,
+      );
+      await waitOnExecutionContext(ctx);
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toContain('version');
+    });
   });
 });

@@ -1,6 +1,5 @@
 import { SLOT_PAIRS, type SlotPair } from '@mirapuri/shared';
-import { itemPairs } from '@mirapuri/shared/d1-schema';
-import { sql } from 'drizzle-orm';
+import { pairs } from '@mirapuri/shared/d1-schema';
 import { drizzle } from 'drizzle-orm/d1';
 import { Hono } from 'hono';
 import type { Env, PairsRequest, PairsResponse } from '../types.js';
@@ -8,10 +7,16 @@ import type { Env, PairsRequest, PairsResponse } from '../types.js';
 export const pairsRoute = new Hono<{ Bindings: Env }>();
 
 /**
- * POST /api/pairs
- * ペアデータを一括 UPSERT
+ * POST /api/pairs?version=xxx
+ * ペアデータを一括 INSERT（バージョン付き）
  */
 pairsRoute.post('/', async (c) => {
+  const version = c.req.query('version');
+
+  if (!version) {
+    return c.json({ error: 'version query parameter is required' }, 400);
+  }
+
   const body = await c.req.json<PairsRequest>();
 
   if (!body.pairs || !Array.isArray(body.pairs)) {
@@ -38,31 +43,23 @@ pairsRoute.post('/', async (c) => {
 
   const db = drizzle(c.env.DB);
 
-  let upserted = 0;
+  let inserted = 0;
 
   for (const pair of body.pairs) {
-    await db
-      .insert(itemPairs)
-      .values({
-        slotPair: pair.slotPair,
-        itemIdA: pair.itemIdA,
-        itemIdB: pair.itemIdB,
-        pairCount: pair.pairCount,
-        rank: pair.rank,
-      })
-      .onConflictDoUpdate({
-        target: [itemPairs.slotPair, itemPairs.itemIdA, itemPairs.rank],
-        set: {
-          itemIdB: sql`excluded.item_id_b`,
-          pairCount: sql`excluded.pair_count`,
-        },
-      });
-    upserted++;
+    await db.insert(pairs).values({
+      version,
+      slotPair: pair.slotPair,
+      itemIdA: pair.itemIdA,
+      itemIdB: pair.itemIdB,
+      pairCount: pair.pairCount,
+      rank: pair.rank,
+    });
+    inserted++;
   }
 
   const response: PairsResponse = {
     success: true,
-    upserted,
+    inserted,
   };
 
   return c.json(response);

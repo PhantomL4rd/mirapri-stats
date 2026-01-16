@@ -51,7 +51,8 @@ describe('Aggregator', () => {
 
   describe('aggregateUsage', () => {
     const createUsageMockDb = (resolvedValue: unknown) => {
-      const mockGroupBy = vi.fn().mockResolvedValue(resolvedValue);
+      const mockHaving = vi.fn().mockResolvedValue(resolvedValue);
+      const mockGroupBy = vi.fn(() => ({ having: mockHaving }));
       const mockFrom = vi.fn(() => ({ groupBy: mockGroupBy }));
       return {
         select: vi.fn(() => ({ from: mockFrom })),
@@ -60,23 +61,23 @@ describe('Aggregator', () => {
 
     it('アイテムごとの使用回数を集計する', async () => {
       const mockDb = createUsageMockDb([
-        { itemId: 'item1', usageCount: 100 },
-        { itemId: 'item2', usageCount: 50 },
-        { itemId: 'item3', usageCount: 25 },
+        { slotId: 1, itemId: 'item1', usageCount: 100 },
+        { slotId: 2, itemId: 'item2', usageCount: 50 },
+        { slotId: 1, itemId: 'item3', usageCount: 25 },
       ]);
 
       const aggregator = createAggregator({ db: mockDb });
       const result = await aggregator.aggregateUsage();
 
       expect(result).toHaveLength(3);
-      expect(result[0]).toEqual({ itemId: 'item1', usageCount: 100 });
-      expect(result[1]).toEqual({ itemId: 'item2', usageCount: 50 });
-      expect(result[2]).toEqual({ itemId: 'item3', usageCount: 25 });
+      expect(result[0]).toEqual({ slotId: 1, itemId: 'item1', usageCount: 100 });
+      expect(result[1]).toEqual({ slotId: 2, itemId: 'item2', usageCount: 50 });
+      expect(result[2]).toEqual({ slotId: 1, itemId: 'item3', usageCount: 25 });
     });
 
     it('usageCountを数値に変換する', async () => {
       // PostgreSQL の count() は bigint を返すことがある
-      const mockDb = createUsageMockDb([{ itemId: 'item1', usageCount: '100' }]);
+      const mockDb = createUsageMockDb([{ slotId: 1, itemId: 'item1', usageCount: '100' }]);
 
       const aggregator = createAggregator({ db: mockDb });
       const result = await aggregator.aggregateUsage();

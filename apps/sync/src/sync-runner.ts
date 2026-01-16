@@ -10,6 +10,7 @@ export interface SyncRunnerDependencies {
 
 /**
  * コア同期ロジック
+ * 3フェーズ同期フロー: startSync → データ送信 → commitSync/abortSync
  */
 export async function runSync(
   deps: SyncRunnerDependencies,
@@ -20,8 +21,8 @@ export async function runSync(
   const result: SyncResult = {
     itemsInserted: 0,
     itemsSkipped: 0,
-    usageUpserted: 0,
-    pairsUpserted: 0,
+    usageInserted: 0,
+    pairsInserted: 0,
     errors: [],
   };
 
@@ -34,7 +35,7 @@ export async function runSync(
     }
   }
 
-  // Items sync
+  // Items sync (バージョン管理不要)
   if (!options.statsOnly) {
     const items = await aggregator.extractUniqueItems();
 
@@ -59,50 +60,53 @@ export async function runSync(
     }
   }
 
-  // Usage sync
-  if (!options.itemsOnly) {
-    const usage = await aggregator.aggregateUsage();
+  // Stats sync (バージョン管理必要: usage + pairs)
+  if (!options.itemsOnly && !options.dryRun) {
+    let version: string | null = null;
 
-    if (!options.dryRun) {
-      const progress: SyncProgress = {
+    try {
+      // Phase 1: Sync セッション開始
+      const startResult = await client.startSync();
+      version = startResult.version;
+
+      // Phase 2: Usage データ送信
+      const usage = await aggregator.aggregateUsage();
+      const usageProgress: SyncProgress = {
         phase: 'usage',
         processed: 0,
         total: usage.length,
         errors: 0,
       };
-      try {
-        const usageResult = await client.postUsage(usage);
-        result.usageUpserted = usageResult.upserted;
-        progress.processed = usage.length;
-        onProgress?.(progress);
-      } catch (error) {
-        result.errors.push(`Usage sync failed: ${(error as Error).message}`);
-        progress.errors++;
-        onProgress?.(progress);
-      }
-    }
-  }
+      const usageResult = await client.postUsage(version, usage);
+      result.usageInserted = usageResult.inserted;
+      usageProgress.processed = usage.length;
+      onProgress?.(usageProgress);
 
-  // Pairs sync
-  if (!options.itemsOnly) {
-    const pairs = await aggregator.aggregatePairs();
-
-    if (!options.dryRun) {
-      const progress: SyncProgress = {
+      // Phase 2: Pairs データ送信
+      const pairs = await aggregator.aggregatePairs();
+      const pairsProgress: SyncProgress = {
         phase: 'pairs',
         processed: 0,
         total: pairs.length,
         errors: 0,
       };
-      try {
-        const pairsResult = await client.postPairs(pairs);
-        result.pairsUpserted = pairsResult.upserted;
-        progress.processed = pairs.length;
-        onProgress?.(progress);
-      } catch (error) {
-        result.errors.push(`Pairs sync failed: ${(error as Error).message}`);
-        progress.errors++;
-        onProgress?.(progress);
+      const pairsResult = await client.postPairs(version, pairs);
+      result.pairsInserted = pairsResult.inserted;
+      pairsProgress.processed = pairs.length;
+      onProgress?.(pairsProgress);
+
+      // Phase 3: コミット（アトミック切り替え）
+      await client.commitSync(version);
+    } catch (error) {
+      result.errors.push(`Stats sync failed: ${(error as Error).message}`);
+
+      // エラー時は abort してロールバック
+      if (version) {
+        try {
+          await client.abortSync(version);
+        } catch (abortError) {
+          result.errors.push(`Abort failed: ${(abortError as Error).message}`);
+        }
       }
     }
   }

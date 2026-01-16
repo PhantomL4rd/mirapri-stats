@@ -32,9 +32,18 @@ const DEFAULT_RETRY_COUNT = 3;
 const DEFAULT_RETRY_DELAY_MS = 1000;
 
 export interface WorkerClient {
+  /** sync セッション開始、新バージョンを返す */
+  startSync(): Promise<{ version: string }>;
+  /** sync コミット、active_version を切り替え */
+  commitSync(version: string): Promise<void>;
+  /** sync 中断、部分データを削除 */
+  abortSync(version: string): Promise<void>;
+  /** items 送信（バージョンなし、UPSERT） */
   postItems(items: ExtractedItem[]): Promise<{ inserted: number; skipped: number }>;
-  postUsage(usage: AggregatedUsage[]): Promise<{ upserted: number }>;
-  postPairs(pairs: AggregatedPair[]): Promise<{ upserted: number }>;
+  /** usage 送信（バージョン付き、INSERT） */
+  postUsage(version: string, usage: AggregatedUsage[]): Promise<{ inserted: number }>;
+  /** pairs 送信（バージョン付き、INSERT） */
+  postPairs(version: string, pairs: AggregatedPair[]): Promise<{ inserted: number }>;
 }
 
 /**
@@ -91,6 +100,57 @@ export function createWorkerClient(config: WorkerClientConfig): WorkerClient {
   }
 
   return {
+    async startSync(): Promise<{ version: string }> {
+      const response = await fetchWithRetry(`${config.baseUrl}/api/sync/start`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${config.authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`Failed to start sync: ${response.status} - ${errorBody}`);
+      }
+
+      const result = (await response.json()) as { success: boolean; version: string };
+      return { version: result.version };
+    },
+
+    async commitSync(version: string): Promise<void> {
+      const response = await fetchWithRetry(`${config.baseUrl}/api/sync/commit`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${config.authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ version }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`Failed to commit sync: ${response.status} - ${errorBody}`);
+      }
+    },
+
+    async abortSync(version: string): Promise<void> {
+      const response = await fetchWithRetry(`${config.baseUrl}/api/sync/abort`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${config.authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ version }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`Failed to abort sync: ${response.status} - ${errorBody}`);
+      }
+    },
+
     async postItems(items: ExtractedItem[]): Promise<{ inserted: number; skipped: number }> {
       const chunks = chunk(items, chunkSizes.items);
       let totalInserted = 0;
@@ -125,12 +185,12 @@ export function createWorkerClient(config: WorkerClientConfig): WorkerClient {
       return { inserted: totalInserted, skipped: totalSkipped };
     },
 
-    async postUsage(usage: AggregatedUsage[]): Promise<{ upserted: number }> {
+    async postUsage(version: string, usage: AggregatedUsage[]): Promise<{ inserted: number }> {
       const chunks = chunk(usage, chunkSizes.usage);
-      let totalUpserted = 0;
+      let totalInserted = 0;
 
       for (const batch of chunks) {
-        const response = await fetchWithRetry(`${config.baseUrl}/api/usage`, {
+        const response = await fetchWithRetry(`${config.baseUrl}/api/usage?version=${version}`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${config.authToken}`,
@@ -138,6 +198,7 @@ export function createWorkerClient(config: WorkerClientConfig): WorkerClient {
           },
           body: JSON.stringify({
             usage: batch.map((item) => ({
+              slotId: item.slotId,
               itemId: item.itemId,
               usageCount: item.usageCount,
             })),
@@ -150,18 +211,18 @@ export function createWorkerClient(config: WorkerClientConfig): WorkerClient {
         }
 
         const result = (await response.json()) as WorkerResponse;
-        totalUpserted += result.upserted ?? 0;
+        totalInserted += result.inserted ?? 0;
       }
 
-      return { upserted: totalUpserted };
+      return { inserted: totalInserted };
     },
 
-    async postPairs(pairs: AggregatedPair[]): Promise<{ upserted: number }> {
+    async postPairs(version: string, pairs: AggregatedPair[]): Promise<{ inserted: number }> {
       const chunks = chunk(pairs, chunkSizes.pairs);
-      let totalUpserted = 0;
+      let totalInserted = 0;
 
       for (const batch of chunks) {
-        const response = await fetchWithRetry(`${config.baseUrl}/api/pairs`, {
+        const response = await fetchWithRetry(`${config.baseUrl}/api/pairs?version=${version}`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${config.authToken}`,
@@ -184,10 +245,10 @@ export function createWorkerClient(config: WorkerClientConfig): WorkerClient {
         }
 
         const result = (await response.json()) as WorkerResponse;
-        totalUpserted += result.upserted ?? 0;
+        totalInserted += result.inserted ?? 0;
       }
 
-      return { upserted: totalUpserted };
+      return { inserted: totalInserted };
     },
   };
 }
