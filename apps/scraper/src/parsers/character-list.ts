@@ -14,6 +14,10 @@ export interface CharacterInfo {
 export interface CharacterListResult {
   characters: CharacterInfo[];
   hasNextPage: boolean;
+  /** 現在のページ番号（パース失敗時は undefined） */
+  currentPage?: number;
+  /** 総ページ数（パース失敗時は undefined） */
+  totalPages?: number;
 }
 
 /**
@@ -45,9 +49,22 @@ export function parseCharacterListPage(html: string): CharacterListResult {
     characters.push({ characterId, level });
   });
 
-  // 次のページがあるかを判定
-  // btn__pager__nextクラスのリンクがあれば次のページがある
-  const hasNextPage = $('.btn__pager__next').length > 0;
+  // ページネーション情報をパース（「1ページ / 3ページ」形式）
+  const pagerText = $('.btn__pager__current').text().trim();
+  const pagerMatch = pagerText.match(/(\d+)ページ\s*\/\s*(\d+)ページ/);
 
-  return { characters, hasNextPage };
+  // 次のページがあるかを判定
+  // 1. btn__pager__next が存在する
+  // 2. かつ、ページ情報がパースできた場合は currentPage < totalPages
+  const hasNextButton = $('.btn__pager__next').length > 0;
+
+  if (pagerMatch?.[1] && pagerMatch[2]) {
+    const currentPage = Number.parseInt(pagerMatch[1], 10);
+    const totalPages = Number.parseInt(pagerMatch[2], 10);
+    const hasNextPage = hasNextButton && currentPage < totalPages;
+    return { characters, hasNextPage, currentPage, totalPages };
+  }
+
+  // ページネーション情報がない場合
+  return { characters, hasNextPage: hasNextButton };
 }

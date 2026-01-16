@@ -178,5 +178,65 @@ describe('character-list-fetcher', () => {
 
       expect(result).toEqual(['11111111']);
     });
+
+    it('maxPages上限に達したら停止する（セーフガード）', async () => {
+      // 無限に次ページがあるように見せかけるHTML
+      const infinitePageHtml = `
+        <div class="entry"><a href="/lodestone/character/11111111/" class="entry__link">
+          <ul class="entry__chara_info"><li><span>100</span></li></ul>
+        </a></div>
+        <ul class="btn__pager">
+          <li class="btn__pager__current">1ページ / 9999ページ</li>
+          <li><a href="?page=2" class="btn__pager__next"></a></li>
+        </ul>
+      `;
+      const httpClient = {
+        fetchWithRateLimit: vi
+          .fn()
+          .mockResolvedValue({ success: true, statusCode: 200, html: infinitePageHtml }),
+      };
+      // maxPages を3に設定
+      const fetcher = createCharacterListFetcher(httpClient, { maxPages: 3 });
+
+      const result = await fetcher.fetchAllCharacterIds(mockSearchKey);
+
+      // 3ページ分（各1キャラクター）のみ取得される
+      expect(result).toEqual(['11111111', '11111111', '11111111']);
+      expect(httpClient.fetchWithRateLimit).toHaveBeenCalledTimes(3);
+    });
+
+    it('ページネーション情報から正しく最終ページを判定する', async () => {
+      let callCount = 0;
+      const httpClient = {
+        fetchWithRateLimit: vi.fn().mockImplementation(async () => {
+          callCount++;
+          if (callCount === 1) {
+            // 1ページ目：2/2ページと表示されているが次へボタンがある（バグ対策）
+            return {
+              success: true,
+              statusCode: 200,
+              html: `
+                <div class="entry"><a href="/lodestone/character/11111111/" class="entry__link">
+                  <ul class="entry__chara_info"><li><span>100</span></li></ul>
+                </a></div>
+                <ul class="btn__pager">
+                  <li class="btn__pager__current">2ページ / 2ページ</li>
+                  <li><a href="?page=3" class="btn__pager__next"></a></li>
+                </ul>
+              `,
+            };
+          }
+          // ここに到達してはいけない
+          return { success: true, statusCode: 200, html: '' };
+        }),
+      };
+      const fetcher = createCharacterListFetcher(httpClient);
+
+      const result = await fetcher.fetchAllCharacterIds(mockSearchKey);
+
+      // ページネーション情報から最終ページと判断して1回のみ取得
+      expect(result).toEqual(['11111111']);
+      expect(httpClient.fetchWithRateLimit).toHaveBeenCalledTimes(1);
+    });
   });
 });

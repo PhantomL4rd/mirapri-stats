@@ -107,6 +107,41 @@ describe('character-list-parser', () => {
       expect(result.hasNextPage).toBe(false);
     });
 
+    it('ページネーション情報をパースする（1ページ目）', () => {
+      const result = parseCharacterListPage(sampleHtml);
+      expect(result.currentPage).toBe(1);
+      expect(result.totalPages).toBe(3);
+    });
+
+    it('ページネーション情報をパースする（最終ページ）', () => {
+      const result = parseCharacterListPage(lastPageHtml);
+      expect(result.currentPage).toBe(3);
+      expect(result.totalPages).toBe(3);
+    });
+
+    it('ページネーション情報がない場合はundefinedを返す', () => {
+      const result = parseCharacterListPage(emptyHtml);
+      expect(result.currentPage).toBeUndefined();
+      expect(result.totalPages).toBeUndefined();
+    });
+
+    it('次へボタンがあっても最終ページなら hasNextPage は false', () => {
+      // 最終ページなのに btn__pager__next がある異常なHTML（ロードストーンのバグ対策）
+      const buggyLastPageHtml = `
+        <div class="entry"><a href="/lodestone/character/99999999/" class="entry__link">
+          <ul class="entry__chara_info"><li><span>100</span></li></ul>
+        </a></div>
+        <ul class="btn__pager">
+          <li class="btn__pager__current">3ページ / 3ページ</li>
+          <li><a href="?page=4" class="btn__pager__next"></a></li>
+        </ul>
+      `;
+      const result = parseCharacterListPage(buggyLastPageHtml);
+      expect(result.hasNextPage).toBe(false);
+      expect(result.currentPage).toBe(3);
+      expect(result.totalPages).toBe(3);
+    });
+
     it('検索結果が0件の場合は空配列を返す', () => {
       const result = parseCharacterListPage(emptyHtml);
       expect(result.characters).toHaveLength(0);

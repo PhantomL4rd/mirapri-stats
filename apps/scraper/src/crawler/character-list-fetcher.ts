@@ -14,6 +14,8 @@ const DEFAULT_MIN_LEVEL = 100;
 export interface CharacterListFetcherConfig {
   /** 最低レベル（これ未満のキャラクターは除外し、出現時点で早期終了） */
   minLevel: number;
+  /** ページ数の上限（セーフガード、無限ループ防止） */
+  maxPages: number;
 }
 
 /**
@@ -21,6 +23,7 @@ export interface CharacterListFetcherConfig {
  */
 const DEFAULT_CONFIG: CharacterListFetcherConfig = {
   minLevel: DEFAULT_MIN_LEVEL,
+  maxPages: 100, // セーフガード：通常の検索結果はこれ以下になるはず
 };
 
 /**
@@ -54,6 +57,14 @@ export function createCharacterListFetcher(
       let shouldContinue = true;
 
       while (shouldContinue) {
+        // セーフガード：ページ数上限チェック
+        if (page > finalConfig.maxPages) {
+          console.log(
+            `[CharacterListFetcher] Reached max page limit (${finalConfig.maxPages}), stopping`,
+          );
+          break;
+        }
+
         const url = buildSearchUrl(key, page === 1 ? undefined : page);
         console.log(`[CharacterListFetcher] Fetching ${url}`);
 
@@ -65,6 +76,13 @@ export function createCharacterListFetcher(
         }
 
         const parsed = parseCharacterListPage(result.html);
+
+        // ページネーション情報をログ出力
+        if (parsed.currentPage !== undefined && parsed.totalPages !== undefined) {
+          console.log(
+            `[CharacterListFetcher] Page ${parsed.currentPage}/${parsed.totalPages}, found ${parsed.characters.length} characters`,
+          );
+        }
 
         if (parsed.characters.length === 0) {
           console.log(`[CharacterListFetcher] No characters found`);
