@@ -5,6 +5,21 @@ import type { Env, ItemsRequest, ItemsResponse } from '../types.js';
 
 export const itemsRoute = new Hono<{ Bindings: Env }>();
 
+// SQLite bind variable limit is 999, items has 3 columns
+const BATCH_SIZE = 300;
+
+function chunk<T>(array: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+}
+
+function getChanges(result: D1Result): number {
+  return result.meta.changes;
+}
+
 /**
  * POST /api/items
  * アイテムマスタを一括挿入（ON CONFLICT DO NOTHING）
@@ -30,29 +45,25 @@ itemsRoute.post('/', async (c) => {
 
   const db = drizzle(c.env.DB);
 
-  let inserted = 0;
-  let skipped = 0;
+  const values = body.items.map((item) => ({
+    id: item.id,
+    name: item.name,
+    slotId: item.slotId,
+  }));
 
-  for (const item of body.items) {
-    try {
-      await db
-        .insert(items)
-        .values({
-          id: item.id,
-          name: item.name,
-          slotId: item.slotId,
-        })
-        .onConflictDoNothing();
-      inserted++;
-    } catch {
-      skipped++;
-    }
+  // SQLite制限回避のためバッチ分割してINSERT
+  const batches = chunk(values, BATCH_SIZE);
+  let totalInserted = 0;
+
+  for (const batch of batches) {
+    const result = await db.insert(items).values(batch).onConflictDoNothing();
+    totalInserted += getChanges(result);
   }
 
   const response: ItemsResponse = {
     success: true,
-    inserted,
-    skipped,
+    inserted: totalInserted,
+    skipped: values.length - totalInserted,
   };
 
   return c.json(response);

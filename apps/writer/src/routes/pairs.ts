@@ -6,6 +6,21 @@ import type { Env, PairsRequest, PairsResponse } from '../types.js';
 
 export const pairsRoute = new Hono<{ Bindings: Env }>();
 
+// SQLite bind variable limit is 999, pairs has 6 columns
+const BATCH_SIZE = 150;
+
+function chunk<T>(array: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+}
+
+function getChanges(result: D1Result): number {
+  return result.meta.changes;
+}
+
 /**
  * POST /api/pairs?version=xxx
  * ペアデータを一括 INSERT（バージョン付き）
@@ -43,23 +58,27 @@ pairsRoute.post('/', async (c) => {
 
   const db = drizzle(c.env.DB);
 
-  let inserted = 0;
+  const values = body.pairs.map((pair) => ({
+    version,
+    slotPair: pair.slotPair,
+    itemIdA: pair.itemIdA,
+    itemIdB: pair.itemIdB,
+    pairCount: pair.pairCount,
+    rank: pair.rank,
+  }));
 
-  for (const pair of body.pairs) {
-    await db.insert(pairs).values({
-      version,
-      slotPair: pair.slotPair,
-      itemIdA: pair.itemIdA,
-      itemIdB: pair.itemIdB,
-      pairCount: pair.pairCount,
-      rank: pair.rank,
-    });
-    inserted++;
+  // SQLite制限回避のためバッチ分割してINSERT
+  const batches = chunk(values, BATCH_SIZE);
+  let totalInserted = 0;
+
+  for (const batch of batches) {
+    const result = await db.insert(pairs).values(batch);
+    totalInserted += getChanges(result);
   }
 
   const response: PairsResponse = {
     success: true,
-    inserted,
+    inserted: totalInserted,
   };
 
   return c.json(response);
