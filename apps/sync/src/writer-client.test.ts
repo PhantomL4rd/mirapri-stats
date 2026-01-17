@@ -22,7 +22,7 @@ describe('WriterClient', () => {
   let client: WriterClient;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     client = createWriterClient({
       baseUrl: 'https://api.example.com',
       authToken: 'test-token',
@@ -110,12 +110,12 @@ describe('WriterClient', () => {
       );
     });
 
-    it('500件を超えるアイテムはチャンク分割される', async () => {
+    it('1000件を超えるアイテムはチャンク分割される', async () => {
       mockFetch
-        .mockResolvedValueOnce(createMockResponse(200, { inserted: 500, skipped: 0 }))
-        .mockResolvedValueOnce(createMockResponse(200, { inserted: 100, skipped: 0 }));
+        .mockResolvedValueOnce(createMockResponse(200, { inserted: 1000, skipped: 0 }))
+        .mockResolvedValueOnce(createMockResponse(200, { inserted: 200, skipped: 0 }));
 
-      const items: ExtractedItem[] = Array.from({ length: 600 }, (_, i) => ({
+      const items: ExtractedItem[] = Array.from({ length: 1200 }, (_, i) => ({
         id: `item${i}`,
         name: `Name${i}`,
         slotId: 1,
@@ -124,7 +124,7 @@ describe('WriterClient', () => {
       const result = await client.postItems(items);
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
-      expect(result).toEqual({ inserted: 600, skipped: 0 });
+      expect(result).toEqual({ inserted: 1200, skipped: 0 });
     });
 
     it('カスタムチャンクサイズを設定できる', async () => {

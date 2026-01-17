@@ -23,9 +23,6 @@ jobs:
             --config apps/scraper/fly.toml \
             -- --dc Gaia
 
-      - name: Wait before next DC
-        run: sleep 60
-
       - name: Run crawler for Mana
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
@@ -35,9 +32,6 @@ jobs:
             --config apps/scraper/fly.toml \
             -- --dc Mana
 
-      - name: Wait before next DC
-        run: sleep 60
-
       - name: Run crawler for Elemental
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
@@ -46,9 +40,6 @@ jobs:
             --dockerfile apps/scraper/Dockerfile \
             --config apps/scraper/fly.toml \
             -- --dc Elemental
-
-      - name: Wait before next DC
-        run: sleep 60
 
       - name: Run crawler for Meteor
         env:
