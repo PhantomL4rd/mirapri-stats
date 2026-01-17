@@ -28,7 +28,9 @@ export async function runSync(
 
   // 全完了チェック（dry-run 以外）
   if (!options.dryRun) {
+    console.log('[Sync] Checking if crawl is complete...');
     const isComplete = await aggregator.isCrawlComplete();
+    console.log(`[Sync] Crawl complete: ${isComplete}`);
     if (!isComplete) {
       result.errors.push('Scraper not finished yet, skipping sync');
       return result;
@@ -37,7 +39,9 @@ export async function runSync(
 
   // Items sync (バージョン管理不要)
   if (!options.statsOnly) {
+    console.log('[Sync] Extracting unique items...');
     const items = await aggregator.extractUniqueItems();
+    console.log(`[Sync] Found ${items.length} unique items`);
 
     if (!options.dryRun) {
       const progress: SyncProgress = {
@@ -47,6 +51,7 @@ export async function runSync(
         errors: 0,
       };
       try {
+        console.log('[Sync] Posting items to D1...');
         const itemsResult = await client.postItems(items);
         result.itemsInserted = itemsResult.inserted;
         result.itemsSkipped = itemsResult.skipped;
@@ -66,37 +71,47 @@ export async function runSync(
 
     try {
       // Phase 1: Sync セッション開始
+      console.log('[Sync] Starting sync session...');
       const startResult = await client.startSync();
       version = startResult.version;
+      console.log(`[Sync] Sync session started: version=${version}`);
 
       // Phase 2: Usage データ送信
+      console.log('[Sync] Aggregating usage data...');
       const usage = await aggregator.aggregateUsage();
+      console.log(`[Sync] Found ${usage.length} usage records`);
       const usageProgress: SyncProgress = {
         phase: 'usage',
         processed: 0,
         total: usage.length,
         errors: 0,
       };
+      console.log('[Sync] Posting usage data to D1...');
       const usageResult = await client.postUsage(version, usage);
       result.usageInserted = usageResult.inserted;
       usageProgress.processed = usage.length;
       onProgress?.(usageProgress);
 
-      // Phase 2: Pairs データ送信
+      // Phase 3: Pairs データ送信
+      console.log('[Sync] Aggregating pairs data...');
       const pairs = await aggregator.aggregatePairs();
+      console.log(`[Sync] Found ${pairs.length} pair records`);
       const pairsProgress: SyncProgress = {
         phase: 'pairs',
         processed: 0,
         total: pairs.length,
         errors: 0,
       };
+      console.log('[Sync] Posting pairs data to D1...');
       const pairsResult = await client.postPairs(version, pairs);
       result.pairsInserted = pairsResult.inserted;
       pairsProgress.processed = pairs.length;
       onProgress?.(pairsProgress);
 
-      // Phase 3: コミット（アトミック切り替え）
+      // Phase 4: コミット（アトミック切り替え）
+      console.log('[Sync] Committing sync...');
       await client.commitSync(version);
+      console.log('[Sync] Sync committed successfully');
     } catch (error) {
       result.errors.push(`Stats sync failed: ${(error as Error).message}`);
 
@@ -120,8 +135,10 @@ export async function runSync(
       errors: 0,
     };
     try {
+      console.log('[Sync] Cleaning up Supabase data...');
       await aggregator.cleanup();
       progress.processed = 3;
+      console.log('[Sync] Cleanup completed');
       onProgress?.(progress);
     } catch (error) {
       result.errors.push(`Cleanup failed: ${(error as Error).message}`);

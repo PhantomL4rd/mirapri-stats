@@ -46,6 +46,14 @@ program
     console.log(`  - cf-access: ${hasCfAccess ? 'enabled' : 'disabled'}`);
     console.log();
 
+    // Parse DATABASE_URL to show host (without credentials)
+    try {
+      const url = new URL(databaseUrl);
+      console.log(`Database host: ${url.host}`);
+    } catch {
+      // ignore parse error
+    }
+
     const db = createDb(databaseUrl);
     const aggregator = createAggregator({ db });
     const client = createWriterClient({

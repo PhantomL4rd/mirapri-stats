@@ -8,7 +8,11 @@ import * as schema from './schema.js';
  * @returns Drizzle ORM インスタンス
  */
 export function createDb(connectionString: string) {
-  const client = postgres(connectionString);
+  const client = postgres(connectionString, {
+    connect_timeout: 30, // 30秒でタイムアウト
+    idle_timeout: 20,
+    max_lifetime: 60 * 30, // 30分
+  });
   return drizzle(client, { schema });
 }
 
