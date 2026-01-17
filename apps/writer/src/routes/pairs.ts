@@ -6,8 +6,8 @@ import type { Env, PairsRequest, PairsResponse } from '../types.js';
 
 export const pairsRoute = new Hono<{ Bindings: Env }>();
 
-// SQLite bind variable limit is 999, pairs has 6 columns
-const BATCH_SIZE = 150;
+// D1 bind variable limit is 100, pairs has 6 columns
+const BATCH_SIZE = 16;
 
 function chunk<T>(array: T[], size: number): T[][] {
   const chunks: T[][] = [];

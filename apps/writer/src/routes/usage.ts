@@ -5,8 +5,8 @@ import type { Env, UsageRequest, UsageResponse } from '../types.js';
 
 export const usageRoute = new Hono<{ Bindings: Env }>();
 
-// SQLite bind variable limit is 999, usage has 4 columns
-const BATCH_SIZE = 200;
+// D1 bind variable limit is 100, usage has 4 columns
+const BATCH_SIZE = 25;
 
 function chunk<T>(array: T[], size: number): T[][] {
   const chunks: T[][] = [];
