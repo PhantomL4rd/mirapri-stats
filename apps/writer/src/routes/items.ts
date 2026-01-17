@@ -16,8 +16,10 @@ function chunk<T>(array: T[], size: number): T[][] {
   return chunks;
 }
 
-function getChanges(result: D1Result): number {
-  return result.meta.changes;
+function getChanges(result: unknown, fallback: number): number {
+  // Drizzle ORM D1 の結果形式に対応
+  const r = result as { meta?: { changes?: number }; rowsAffected?: number };
+  return r.meta?.changes ?? r.rowsAffected ?? fallback;
 }
 
 /**
@@ -57,7 +59,7 @@ itemsRoute.post('/', async (c) => {
 
   for (const batch of batches) {
     const result = await db.insert(items).values(batch).onConflictDoNothing();
-    totalInserted += getChanges(result);
+    totalInserted += getChanges(result, batch.length);
   }
 
   const response: ItemsResponse = {
