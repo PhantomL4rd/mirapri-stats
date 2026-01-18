@@ -1,9 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  createVersionManager,
-  type VersionManager,
-  type VersionManagerDependencies,
-} from './version-manager.js';
+import { describe, expect, it, vi } from 'vitest';
+import { createVersionManager, type VersionManagerDependencies } from './version-manager.js';
 
 describe('VersionManager', () => {
   describe('getActiveVersion', () => {

@@ -1,6 +1,6 @@
 import type { GlamourData } from '@mirapuri/shared';
 import { describe, expect, it } from 'vitest';
-import { parseGlamourData } from './character-page.js';
+import { isOptedOut, OPT_OUT_TAG, parseGlamourData, parseProfile } from './character-page.js';
 
 // 議事録のHTML構造を再現
 const createMirageSection = (itemName: string, itemUrl: string, category: string) => `
@@ -160,5 +160,88 @@ describe('Parser', () => {
       expect(result).toHaveLength(1);
       expect(result[0]?.slot).toBe('body');
     });
+  });
+});
+
+// プロフィール用HTMLヘルパー
+const createProfileSection = (text: string) => `
+  <section class="character__profile">
+    <div class="self-introduction">${text}</div>
+  </section>
+`;
+
+describe('parseProfile', () => {
+  it('should extract profile text', () => {
+    const html = `<html>${createProfileSection('男の娘ララフェル')}</html>`;
+
+    const result = parseProfile(html);
+
+    expect(result).toBe('男の娘ララフェル');
+  });
+
+  it('should return null for empty profile', () => {
+    const html = `<html>${createProfileSection('')}</html>`;
+
+    const result = parseProfile(html);
+
+    expect(result).toBeNull();
+  });
+
+  it('should return null for missing profile section', () => {
+    const html = '<html><body></body></html>';
+
+    const result = parseProfile(html);
+
+    expect(result).toBeNull();
+  });
+
+  it('should trim whitespace', () => {
+    const html = `<html>${createProfileSection('  テスト  ')}</html>`;
+
+    const result = parseProfile(html);
+
+    expect(result).toBe('テスト');
+  });
+});
+
+describe('isOptedOut', () => {
+  it('should return true when profile contains opt-out tag', () => {
+    const html = `<html>${createProfileSection(`よろしく ${OPT_OUT_TAG}`)}</html>`;
+
+    const result = isOptedOut(html);
+
+    expect(result).toBe(true);
+  });
+
+  it('should return false when profile does not contain opt-out tag', () => {
+    const html = `<html>${createProfileSection('普通のプロフィール')}</html>`;
+
+    const result = isOptedOut(html);
+
+    expect(result).toBe(false);
+  });
+
+  it('should return false when profile is empty', () => {
+    const html = `<html>${createProfileSection('')}</html>`;
+
+    const result = isOptedOut(html);
+
+    expect(result).toBe(false);
+  });
+
+  it('should return false when profile section is missing', () => {
+    const html = '<html><body></body></html>';
+
+    const result = isOptedOut(html);
+
+    expect(result).toBe(false);
+  });
+
+  it('should detect opt-out tag anywhere in profile', () => {
+    const html = `<html>${createProfileSection(`プロフィール文\n${OPT_OUT_TAG}\nその他`)}</html>`;
+
+    const result = isOptedOut(html);
+
+    expect(result).toBe(true);
   });
 });

@@ -89,12 +89,12 @@ function parseArgs(args: string[]): ParsedArgs {
   const dataCenter = dcArg && dcArg in DATA_CENTERS ? (dcArg as DataCenterName) : null;
 
   // --seed <number>
-  const seedIndex = args.findIndex((a) => a === '--seed');
+  const seedIndex = args.indexOf('--seed');
   const seedArg = seedIndex !== -1 ? args[seedIndex + 1] : null;
   const seed = seedArg ? Number.parseInt(seedArg, 10) : DEFAULT_SEED;
 
   // --limit <number>
-  const limitIndex = args.findIndex((a) => a === '--limit');
+  const limitIndex = args.indexOf('--limit');
   const limitArg = limitIndex !== -1 ? args[limitIndex + 1] : null;
   const limit = limitArg ? Number.parseInt(limitArg, 10) : DEFAULT_LIMIT;
 

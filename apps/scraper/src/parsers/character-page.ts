@@ -71,3 +71,30 @@ function extractItemName($: cheerio.CheerioAPI, $p: ReturnType<cheerio.CheerioAP
   const trimmed = name.trim();
   return trimmed || null;
 }
+
+/**
+ * オプトアウト用タグ
+ * プロフィールにこのタグが含まれている場合、統計から除外する
+ */
+export const OPT_OUT_TAG = '#opt-out-stats';
+
+/**
+ * HTMLからプロフィール（自己紹介文）を抽出
+ * @param html LodestoneキャラクターページのHTML
+ * @returns プロフィール文字列（未設定の場合はnull）
+ */
+export function parseProfile(html: string): string | null {
+  const $ = cheerio.load(html);
+  const profile = $('.character__profile .self-introduction').text().trim();
+  return profile || null;
+}
+
+/**
+ * プロフィールにオプトアウトタグが含まれているかチェック
+ * @param html LodestoneキャラクターページのHTML
+ * @returns オプトアウトされている場合はtrue
+ */
+export function isOptedOut(html: string): boolean {
+  const profile = parseProfile(html);
+  return profile?.includes(OPT_OUT_TAG) ?? false;
+}

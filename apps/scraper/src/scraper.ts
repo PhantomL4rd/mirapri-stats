@@ -1,5 +1,5 @@
 import type { ScraperError, ScraperResult } from '@mirapuri/shared';
-import { parseGlamourData } from './parsers/character-page.js';
+import { isOptedOut, parseGlamourData } from './parsers/character-page.js';
 import type { GlamourRepository } from './repository.js';
 import type { HttpClient } from './utils/http-client.js';
 import { createLogger } from './utils/logger.js';
@@ -66,7 +66,19 @@ export function createScraper(config: ScraperConfig): Scraper {
         };
       }
 
-      // 2. HTML解析
+      // 2. オプトアウトチェック
+      if (isOptedOut(httpResult.html!)) {
+        logger.info('オプトアウト検出、スキップ', { characterId });
+        return {
+          success: true,
+          characterId,
+          savedCount: 0,
+          errors,
+          optedOut: true,
+        };
+      }
+
+      // 3. HTML解析
       const glamourData = parseGlamourData(httpResult.html!);
       logger.info('ミラプリデータ抽出完了', {
         characterId,

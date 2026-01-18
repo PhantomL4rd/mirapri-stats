@@ -44,6 +44,8 @@ export interface ScraperResult {
   savedCount: number;
   /** エラー一覧 */
   errors: ScraperError[];
+  /** オプトアウトされていた場合true */
+  optedOut?: boolean;
 }
 
 /**
