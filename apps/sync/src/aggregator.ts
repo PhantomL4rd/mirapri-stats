@@ -192,6 +192,8 @@ async function aggregateBidirectionalPairs(
       INNER JOIN characters_glamour b ON a.character_id = b.character_id
       WHERE a.slot_id = ${slotA}
         AND b.slot_id = ${slotB}
+        AND a.item_id NOT IN (${sql.join(EXCLUDED_ITEM_IDS.map((id) => sql`${id}`), sql`, `)})
+        AND b.item_id NOT IN (${sql.join(EXCLUDED_ITEM_IDS.map((id) => sql`${id}`), sql`, `)})
       GROUP BY a.item_id, b.item_id
       HAVING COUNT(*) >= ${MIN_COUNT_THRESHOLD}
     ),
