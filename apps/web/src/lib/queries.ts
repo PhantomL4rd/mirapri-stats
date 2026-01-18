@@ -112,6 +112,7 @@ export async function getPartnerItems(
 ): Promise<PartnerItem[]> {
   const version = await getActiveVersion(db);
 
+  // 1位は面白くないので除外
   const query = `
     SELECT
       p.partner_item_id AS item_id,
@@ -122,7 +123,7 @@ export async function getPartnerItems(
     INNER JOIN items i ON p.partner_item_id = i.id
     WHERE p.version = ? AND p.base_item_id = ?
     ORDER BY p.pair_count DESC
-    LIMIT ?
+    LIMIT ? OFFSET 1
   `;
 
   const result = await db
