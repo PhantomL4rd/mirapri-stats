@@ -1,0 +1,45 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title = 'ミラプリ統計', description = 'FF14プレイヤーのミラプリ傾向を集計・可視化' } =
+  Astro.props;
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title}</title>
+    <!-- Lodestone ツールチップ -->
+    <script src="https://img.finalfantasyxiv.com/lds/pc/global/js/eorzeadb/loader.js?v2"></script>
+  </head>
+  <body class="min-h-screen bg-gray-50 text-gray-900">
+    <slot name="ribbon" />
+
+    <header class="border-b bg-white">
+      <div class="mx-auto max-w-4xl px-4 py-4">
+        <a href="/" class="text-xl font-bold hover:text-gray-600"> ミラプリ統計 </a>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-4xl px-4 py-8">
+      <slot />
+    </main>
+
+    <footer class="border-t bg-white">
+      <div class="mx-auto max-w-4xl px-4 py-4 text-center text-sm text-gray-500">
+        <a href="/readme" class="hover:underline">このサイトについて</a>
+        <span class="mx-2">|</span>
+        <span>© 2026 ミラプリ統計</span>
+      </div>
+    </footer>
+  </body>
+</html>

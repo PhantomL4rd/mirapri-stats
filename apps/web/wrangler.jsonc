@@ -1,0 +1,12 @@
+{
+  "name": "mirapuri-web",
+  "compatibility_date": "2025-01-01",
+  "pages_build_output_dir": "./dist",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "mirapuri-stats",
+      "database_id": "29e5b239-799f-4080-8cde-7cd2e9fff19c"
+    }
+  ]
+}
