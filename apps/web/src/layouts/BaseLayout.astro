@@ -77,7 +77,7 @@ const showFreshness = freshness?.dataFrom && freshness?.dataTo;
       <slot />
     </main>
 
-    <footer class="border-t bg-card">
+    <footer class="border-t bg-card pt-4">
       {showFreshness && (
         <div class="mx-auto max-w-4xl px-4 pb-2 text-center text-xs text-muted-foreground">
           統計期間: {formatDateSlash(freshness!.dataFrom)} - {formatDateSlash(freshness!.dataTo)}
