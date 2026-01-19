@@ -60,4 +60,7 @@
 #eorzeadb_tooltip {
   position: fixed !important;
   z-index: 9999 !important;
+  width: auto !important;
+  height: auto !important;
+  overflow: visible !important;
 }     
