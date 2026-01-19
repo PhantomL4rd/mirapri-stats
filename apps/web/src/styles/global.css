@@ -62,10 +62,12 @@
   z-index: 9999 !important;
 }
 
-#eorzeadb_tooltip *,
-#eorzeadb_tooltip *::before,
-#eorzeadb_tooltip *::after {
-  border-style: revert !important;
-  border-width: revert !important;
-  box-sizing: revert !important;
+#eorzeadb_tooltip * {
+  all: revert;
+}
+
+#eorzeadb_tooltip img {
+  display: revert !important;
+  max-width: revert !important;
+  height: revert !important;
 }     
