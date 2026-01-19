@@ -146,15 +146,15 @@ export function createAggregator(deps: AggregatorDependencies): Aggregator {
     async getDataDateRange(): Promise<DataDateRange> {
       const result = await db
         .select({
-          dataFrom: sql<Date>`MIN(${charactersGlamour.fetchedAt})`,
-          dataTo: sql<Date>`MAX(${charactersGlamour.fetchedAt})`,
+          dataFrom: sql<string | null>`MIN(${charactersGlamour.fetchedAt})`,
+          dataTo: sql<string | null>`MAX(${charactersGlamour.fetchedAt})`,
         })
         .from(charactersGlamour);
 
       const row = result[0];
       return {
-        dataFrom: row?.dataFrom ?? null,
-        dataTo: row?.dataTo ?? null,
+        dataFrom: row?.dataFrom ? new Date(row.dataFrom) : null,
+        dataTo: row?.dataTo ? new Date(row.dataTo) : null,
       };
     },
 
