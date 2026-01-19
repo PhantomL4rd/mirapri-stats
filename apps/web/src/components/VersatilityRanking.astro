@@ -26,17 +26,12 @@ function getLodestoneUrl(itemId: string): string {
             <span class="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground">
               {index + 1}
             </span>
-            <div class="flex-1">
-              <a
-                href={`/item/${item.itemId}`}
-                class="font-medium text-card-foreground hover:underline"
-              >
-                {item.itemName}
-              </a>
-              <p class="text-sm text-muted-foreground">
-                {item.versatilityScore}種類の装備と相性◎
-              </p>
-            </div>
+            <a
+              href={`/item/${item.itemId}`}
+              class="flex-1 font-medium text-card-foreground hover:underline"
+            >
+              {item.itemName}
+            </a>
             <a
               href={getLodestoneUrl(item.itemId)}
               target="_blank"

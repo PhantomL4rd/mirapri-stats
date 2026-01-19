@@ -25,6 +25,20 @@ if (!itemInfo) {
 
 const slotName = SLOT_NAMES[itemInfo.slotId] ?? '装備';
 
+// 部位ごとにグループ化
+const partnersBySlot = partnerItems.reduce(
+  (acc, item) => {
+    const slot = item.slotId;
+    if (!acc[slot]) acc[slot] = [];
+    acc[slot].push(item);
+    return acc;
+  },
+  {} as Record<number, typeof partnerItems>,
+);
+
+// 表示順: 頭(1), 胴(2), 手(3), 脚(4), 足(5) - ただし自分の部位は除外
+const slotOrder = [1, 2, 3, 4, 5].filter((s) => s !== itemInfo.slotId);
+
 function getLodestoneUrl(id: string): string {
   return `https://jp.finalfantasyxiv.com/lodestone/playguide/db/item/${id}/`;
 }
@@ -49,25 +63,56 @@ function getLodestoneUrl(id: string): string {
       <p class="mt-1 text-sm text-muted-foreground">のベストマッチ</p>
     </div>
 
-    <div class="space-y-2">
+    <div class="space-y-3">
       {
         partnerItems.length === 0 ? (
           <p class="text-center text-muted-foreground py-8">データがありません</p>
+        ) : itemInfo.slotId === 2 ? (
+          // 胴装備: 部位ごとにアコーディオン
+          slotOrder.map((slotId) => {
+            const items = partnersBySlot[slotId];
+            if (!items || items.length === 0) return null;
+            const slotLabel = SLOT_NAMES[slotId] ?? '装備';
+            return (
+              <details class="group rounded-lg border border-border bg-card shadow-sm" open>
+                <summary class="flex cursor-pointer items-center justify-between p-3 font-medium text-card-foreground hover:bg-muted/50">
+                  <span>{slotLabel}</span>
+                  <span class="text-sm text-muted-foreground">{items.length}件</span>
+                </summary>
+                <ul class="border-t border-border">
+                  {items.map((item) => (
+                    <li class="flex items-center gap-3 border-b border-border last:border-b-0 p-3">
+                      <a
+                        href={`/item/${item.itemId}`}
+                        class="flex-1 font-medium text-card-foreground hover:underline"
+                      >
+                        {item.itemName}
+                      </a>
+                      <a
+                        href={getLodestoneUrl(item.itemId)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="eorzeadb_link text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        Lodestone
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            );
+          })
         ) : (
+          // 胴以外: フラットリスト
           <ul class="space-y-2">
             {partnerItems.map((item) => (
               <li class="flex items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-sm">
-                <div class="flex-1">
-                  <a
-                    href={`/item/${item.itemId}`}
-                    class="font-medium text-card-foreground hover:underline"
-                  >
-                    {item.itemName}
-                  </a>
-                  <span class="ml-2 text-xs text-muted-foreground">
-                    {SLOT_NAMES[item.slotId] ?? ''}
-                  </span>
-                </div>
+                <a
+                  href={`/item/${item.itemId}`}
+                  class="flex-1 font-medium text-card-foreground hover:underline"
+                >
+                  {item.itemName}
+                </a>
                 <a
                   href={getLodestoneUrl(item.itemId)}
                   target="_blank"

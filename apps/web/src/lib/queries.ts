@@ -8,13 +8,14 @@ export interface VersatilityItem {
   itemId: string;
   itemName: string;
   slotId: number;
-  /** ユニークなペア相手の数 */
+  /** 2,3,4位に出現した回数（着回し力） */
   versatilityScore: number;
 }
 
 /**
  * 着回し力ランキングを取得
- * 着回し力 = ユニークなペア相手（partner_item_id）の数
+ * usage_count（使用回数）順でソート
+ * versatility_score = pairs テーブルで partner_item_id として rank 2,3,4 に出現した回数
  *
  * @param db D1Database
  * @param slotId フィルタするスロットID（1-5）、nullで全スロット
@@ -28,21 +29,26 @@ export async function getVersatilityRanking(
   const version = await getActiveVersion(db);
 
   // スロットフィルタの条件
-  const slotCondition = slotId !== null ? 'AND p.base_slot_id = ?' : '';
-  const bindings = slotId !== null ? [version, slotId, limit] : [version, limit];
+  const slotCondition = slotId !== null ? 'AND u.slot_id = ?' : '';
+  const bindings = slotId !== null ? [version, version, slotId, limit] : [version, version, limit];
 
   const query = `
     SELECT
-      p.base_item_id AS item_id,
+      u.item_id,
       i.name AS item_name,
       i.slot_id,
-      COUNT(DISTINCT p.partner_item_id) AS versatility_score
-    FROM pairs p
-    INNER JOIN items i ON p.base_item_id = i.id
-    WHERE p.version = ?
+      COALESCE(v.versatility_score, 0) AS versatility_score
+    FROM usage u
+    INNER JOIN items i ON u.item_id = i.id
+    LEFT JOIN (
+      SELECT partner_item_id, COUNT(*) AS versatility_score
+      FROM pairs
+      WHERE version = ? AND rank IN (2, 3, 4)
+      GROUP BY partner_item_id
+    ) v ON u.item_id = v.partner_item_id
+    WHERE u.version = ?
       ${slotCondition}
-    GROUP BY p.base_item_id, i.name, i.slot_id
-    ORDER BY versatility_score DESC
+    ORDER BY versatility_score DESC, u.usage_count DESC
     LIMIT ?
   `;
 
@@ -112,7 +118,7 @@ export async function getPartnerItems(
 ): Promise<PartnerItem[]> {
   const version = await getActiveVersion(db);
 
-  // 1位は面白くないので除外
+  // 各部位の1位は面白くないので除外（rank > 1）
   const query = `
     SELECT
       p.partner_item_id AS item_id,
@@ -121,20 +127,17 @@ export async function getPartnerItems(
       p.pair_count
     FROM pairs p
     INNER JOIN items i ON p.partner_item_id = i.id
-    WHERE p.version = ? AND p.base_item_id = ?
+    WHERE p.version = ? AND p.base_item_id = ? AND p.rank > 1
     ORDER BY p.pair_count DESC
-    LIMIT ? OFFSET 1
+    LIMIT ?
   `;
 
-  const result = await db
-    .prepare(query)
-    .bind(version, itemId, limit)
-    .all<{
-      item_id: string;
-      item_name: string;
-      slot_id: number;
-      pair_count: number;
-    }>();
+  const result = await db.prepare(query).bind(version, itemId, limit).all<{
+    item_id: string;
+    item_name: string;
+    slot_id: number;
+    pair_count: number;
+  }>();
 
   return (result.results ?? []).map((row) => ({
     itemId: row.item_id,
