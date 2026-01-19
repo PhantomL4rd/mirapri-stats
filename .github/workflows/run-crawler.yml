@@ -18,7 +18,7 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
-          flyctl machine run . \
+          yes | flyctl machine run . \
             --app mirapri-stats \
             --org phantoml4rd \
             --region nrt \
@@ -32,7 +32,7 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
-          flyctl machine run . \
+          yes | flyctl machine run . \
             --app mirapri-stats \
             --org phantoml4rd \
             --region nrt \
@@ -46,7 +46,7 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
-          flyctl machine run . \
+          yes | flyctl machine run . \
             --app mirapri-stats \
             --org phantoml4rd \
             --region nrt \
@@ -60,7 +60,7 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
-          flyctl machine run . \
+          yes | flyctl machine run . \
             --app mirapri-stats \
             --org phantoml4rd \
             --region nrt \
