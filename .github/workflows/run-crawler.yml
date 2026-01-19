@@ -21,6 +21,7 @@ jobs:
           flyctl machine run . \
             --dockerfile apps/scraper/Dockerfile \
             --config apps/scraper/fly.toml \
+            -y \
             -- --dc Gaia
 
       - name: Run crawler for Mana
@@ -30,6 +31,7 @@ jobs:
           flyctl machine run . \
             --dockerfile apps/scraper/Dockerfile \
             --config apps/scraper/fly.toml \
+            -y \
             -- --dc Mana
 
       - name: Run crawler for Elemental
@@ -39,6 +41,7 @@ jobs:
           flyctl machine run . \
             --dockerfile apps/scraper/Dockerfile \
             --config apps/scraper/fly.toml \
+            -y \
             -- --dc Elemental
 
       - name: Run crawler for Meteor
@@ -48,4 +51,5 @@ jobs:
           flyctl machine run . \
             --dockerfile apps/scraper/Dockerfile \
             --config apps/scraper/fly.toml \
+            -y \
             -- --dc Meteor
