@@ -19,9 +19,10 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           flyctl machine run . \
+            --app mirapri-stats \
             --dockerfile apps/scraper/Dockerfile \
             --config apps/scraper/fly.toml \
-            -y \
+            --rm \
             -- --dc Gaia
 
       - name: Run crawler for Mana
@@ -29,9 +30,10 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           flyctl machine run . \
+            --app mirapri-stats \
             --dockerfile apps/scraper/Dockerfile \
             --config apps/scraper/fly.toml \
-            -y \
+            --rm \
             -- --dc Mana
 
       - name: Run crawler for Elemental
@@ -39,9 +41,10 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           flyctl machine run . \
+            --app mirapri-stats \
             --dockerfile apps/scraper/Dockerfile \
             --config apps/scraper/fly.toml \
-            -y \
+            --rm \
             -- --dc Elemental
 
       - name: Run crawler for Meteor
@@ -49,7 +52,8 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           flyctl machine run . \
+            --app mirapri-stats \
             --dockerfile apps/scraper/Dockerfile \
             --config apps/scraper/fly.toml \
-            -y \
+            --rm \
             -- --dc Meteor
