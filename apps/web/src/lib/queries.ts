@@ -8,7 +8,6 @@ export interface VersatilityItem {
   itemId: string;
   itemName: string;
   slotId: number;
-  /** 2,3,4位に出現した回数（着回し力） */
   versatilityScore: number;
 }
 
@@ -24,7 +23,7 @@ export interface VersatilityItem {
 export async function getVersatilityRanking(
   db: D1Database,
   slotId: number | null = 2, // デフォルト: 胴
-  limit = 20,
+  limit = 10,
 ): Promise<VersatilityItem[]> {
   const version = await getActiveVersion(db);
 
@@ -43,7 +42,7 @@ export async function getVersatilityRanking(
     LEFT JOIN (
       SELECT partner_item_id, COUNT(*) AS versatility_score
       FROM pairs
-      WHERE version = ? AND rank IN (2, 3, 4)
+      WHERE version = ? AND rank <= 5
       GROUP BY partner_item_id
     ) v ON u.item_id = v.partner_item_id
     WHERE u.version = ?
