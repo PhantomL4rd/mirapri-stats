@@ -414,7 +414,7 @@ describe('POST /api/pairs', () => {
               baseItemId: 'item-001',
               partnerItemId: 'item-002',
               pairCount: 50,
-              rank: 12,
+              rank: 11,
             },
           ],
         }),
