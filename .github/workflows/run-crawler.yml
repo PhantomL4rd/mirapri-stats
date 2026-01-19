@@ -27,8 +27,8 @@ jobs:
             --dockerfile apps/scraper/Dockerfile \
             --config apps/scraper/fly.toml 2>&1)
           echo "$OUTPUT"
-          # Extract image ref from output
-          IMAGE_REF=$(echo "$OUTPUT" | grep -oE 'registry\.fly\.io/[^[:space:]]+' | head -1)
+          # Extract image ref from output (remove @sha256:... suffix if present)
+          IMAGE_REF=$(echo "$OUTPUT" | grep -oE 'registry\.fly\.io/[^[:space:]]+' | head -1 | sed 's/@sha256:.*//')
           if [ -z "$IMAGE_REF" ]; then
             echo "Failed to extract image ref"
             exit 1
