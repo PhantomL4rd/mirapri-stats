@@ -20,6 +20,7 @@ jobs:
         run: |
           flyctl machine run . \
             --app mirapri-stats \
+            --org phantoml4rd \
             --region nrt \
             --dockerfile apps/scraper/Dockerfile \
             --config apps/scraper/fly.toml \
@@ -33,6 +34,7 @@ jobs:
         run: |
           flyctl machine run . \
             --app mirapri-stats \
+            --org phantoml4rd \
             --region nrt \
             --dockerfile apps/scraper/Dockerfile \
             --config apps/scraper/fly.toml \
@@ -46,6 +48,7 @@ jobs:
         run: |
           flyctl machine run . \
             --app mirapri-stats \
+            --org phantoml4rd \
             --region nrt \
             --dockerfile apps/scraper/Dockerfile \
             --config apps/scraper/fly.toml \
@@ -59,6 +62,7 @@ jobs:
         run: |
           flyctl machine run . \
             --app mirapri-stats \
+            --org phantoml4rd \
             --region nrt \
             --dockerfile apps/scraper/Dockerfile \
             --config apps/scraper/fly.toml \
