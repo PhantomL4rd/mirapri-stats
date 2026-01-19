@@ -2,7 +2,7 @@ import type { D1Database } from '@cloudflare/workers-types';
 import { getActiveVersion } from './db';
 
 /**
- * 着回し力ランキングのアイテム
+ * 人気ランキングのアイテム
  */
 export interface VersatilityItem {
   itemId: string;
@@ -12,7 +12,7 @@ export interface VersatilityItem {
 }
 
 /**
- * 着回し力ランキングを取得
+ * 人気ランキングを取得
  * usage_count（使用回数）順でソート
  * versatility_score = pairs テーブルで partner_item_id として rank 2,3,4 に出現した回数
  *
