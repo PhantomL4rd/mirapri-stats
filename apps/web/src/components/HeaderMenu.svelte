@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Menu, SwatchBook, X } from 'lucide-svelte';
+  import { Menu, MessageCircle, SwatchBook, X } from 'lucide-svelte';
 
   let isOpen = $state(false);
 
@@ -58,7 +58,11 @@
         target="_blank"
         rel="noopener noreferrer"
         class="flex items-center gap-3 rounded-md px-3 py-3 text-sm hover:bg-accent transition-colors"
-        onclick={close}>ご意見・ご要望</a>
+        onclick={close}
+      >
+        <MessageCircle class="size-5" />
+        ご意見・ご要望
+      </a>
     </nav>
   </div>
 {/if}
