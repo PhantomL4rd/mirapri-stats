@@ -125,8 +125,9 @@ export async function getPartnerItems(
       p.pair_count
     FROM pairs p
     INNER JOIN items i ON p.partner_item_id = i.id
+    INNER JOIN usage u ON u.item_id = i.id AND u.version = p.version
     WHERE p.version = ? AND p.base_item_id = ?
-    ORDER BY p.pair_count DESC
+    ORDER BY p.pair_count DESC, u.usage_count DESC
     LIMIT ?
   `;
 
