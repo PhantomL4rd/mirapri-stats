@@ -34,8 +34,6 @@ const showFreshness = freshness?.dataFrom && freshness?.dataTo;
     <meta name="robots" content="noindex, nofollow" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
-    <!-- Lodestone ツールチップ -->
-    <script src="https://lds-img.finalfantasyxiv.com/pc/global/js/eorzeadb/loader.js?v3"></script>
   </head>
   <body class="min-h-screen bg-background text-foreground">
     <slot name="ribbon" />
@@ -73,5 +71,8 @@ const showFreshness = freshness?.dataFrom && freshness?.dataTo;
         © SQUARE ENIX
       </div>
     </footer>
+
+    <!-- Lodestone ツールチップ -->
+    <script is:inline src="https://lds-img.finalfantasyxiv.com/pc/global/js/eorzeadb/loader.js?v3"></script>
   </body>
 </html>
