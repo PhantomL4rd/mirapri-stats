@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { searchItems, type SearchResultItem } from '../../lib/queries';
+import { type SearchResultItem, searchItems } from '../../lib/queries';
 
 // モックデータ（ローカル開発用）
 const MOCK_ITEMS: SearchResultItem[] = [

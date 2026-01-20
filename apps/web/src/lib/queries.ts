@@ -183,9 +183,7 @@ export interface SearchResultItem {
  * ひらがなをカタカナに変換
  */
 function hiraganaToKatakana(str: string): string {
-  return str.replace(/[\u3041-\u3096]/g, (char) =>
-    String.fromCharCode(char.charCodeAt(0) + 0x60),
-  );
+  return str.replace(/[\u3041-\u3096]/g, (char) => String.fromCharCode(char.charCodeAt(0) + 0x60));
 }
 
 /**
