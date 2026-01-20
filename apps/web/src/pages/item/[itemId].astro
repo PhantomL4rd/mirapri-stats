@@ -51,12 +51,13 @@ function getLodestoneUrl(id: string): string {
     <div>
       <p class="text-sm text-muted-foreground">{slotName}</p>
       <h1 class="text-2xl font-bold">
-        <span
+        <a
+          href={getLodestoneUrl(itemInfo.itemId)}
           class="eorzeadb_link cursor-help"
-          data-href={getLodestoneUrl(itemInfo.itemId)}
+          onclick="event.preventDefault()"
         >
           {itemInfo.itemName}
-        </span>
+        </a>
       </h1>
       <p class="mt-1 text-sm text-muted-foreground">のベストマッチ</p>
     </div>

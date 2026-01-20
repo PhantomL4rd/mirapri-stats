@@ -29,6 +29,6 @@
     }
   },
   "files": {
-    "includes": ["apps/**/*.ts", "packages/**/src/**/*.ts", "*.json"]
+    "includes": ["apps/**/src/**/*.ts", "packages/**/src/**/*.ts", "*.json"]
   }
 }
