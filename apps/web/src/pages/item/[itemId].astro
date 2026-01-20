@@ -52,9 +52,10 @@ function getLodestoneUrl(id: string): string {
       <p class="text-sm text-muted-foreground">{slotName}</p>
       <h1 class="text-2xl font-bold">
         <a
-          id="item-title"
           href={getLodestoneUrl(itemInfo.itemId)}
-          class="eorzeadb_link cursor-help"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="eorzeadb_link hover:underline"
         >
           {itemInfo.itemName}
         </a>
@@ -133,33 +134,4 @@ function getLodestoneUrl(id: string): string {
       </a>
     </div>
   </div>
-
-  <script>
-    const link = document.getElementById('item-title');
-    let tooltipVisible = false;
-
-    link?.addEventListener('click', (e) => {
-      e.preventDefault();
-
-      // Lodestoneスクリプトが読み込んだjQueryを使う
-      const $ = (window as any).jQuery;
-      if (!$) {
-        console.log('jQuery not loaded');
-        return;
-      }
-
-      const edb = (window as any).eorzeadb;
-      console.log('eorzeadb:', edb);
-      console.log('tooltipVisible:', tooltipVisible);
-
-      if (!tooltipVisible) {
-        // jQueryのtriggerでmouseenterを発火
-        $(link).trigger('mouseenter');
-        tooltipVisible = true;
-      } else {
-        $(link).trigger('mouseleave');
-        tooltipVisible = false;
-      }
-    });
-  </script>
 </BaseLayout>
