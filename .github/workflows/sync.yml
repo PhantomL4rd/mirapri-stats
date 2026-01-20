@@ -2,13 +2,15 @@ name: Sync to D1
 
 on:
   workflow_dispatch: # Manual trigger
-  # Uncomment for monthly schedule:
-  # schedule:
-  #   - cron: '0 0 1 * *' # 1st of each month at 00:00 UTC
+  schedule:
+    # Every Saturday at 00:00 UTC (09:00 JST)
+    - cron: '0 0 * * 6'
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.sync.outputs.status }}
     steps:
       - uses: actions/checkout@v4
 
@@ -31,10 +33,73 @@ jobs:
         run: pnpm -F @mirapri/sync build
 
       - name: Run sync
+        id: sync
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           WORKER_URL: ${{ secrets.WORKER_URL }}
           WORKER_AUTH_TOKEN: ${{ secrets.WORKER_AUTH_TOKEN }}
           CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
           CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
-        run: pnpm -F @mirapri/sync start
+        run: |
+          OUTPUT=$(pnpm -F @mirapri/sync start 2>&1) || EXIT_CODE=$?
+          echo "$OUTPUT"
+
+          # Determine status based on output
+          if echo "$OUTPUT" | grep -q "No crawl progress found"; then
+            echo "status=no_progress" >> $GITHUB_OUTPUT
+            echo "Status: no crawl progress found"
+            exit 0
+          elif echo "$OUTPUT" | grep -q "Scraper not finished yet"; then
+            echo "status=in_progress" >> $GITHUB_OUTPUT
+            echo "Status: crawler in progress"
+            exit 0
+          elif echo "$OUTPUT" | grep -q "Sync Complete"; then
+            echo "status=complete" >> $GITHUB_OUTPUT
+            echo "Status: sync complete"
+          else
+            echo "status=error" >> $GITHUB_OUTPUT
+            echo "Status: unknown or error"
+          fi
+
+          # Exit with original exit code if there was an error
+          if [ -n "$EXIT_CODE" ]; then
+            exit $EXIT_CODE
+          fi
+
+  notify:
+    needs: sync
+    if: needs.sync.outputs.status == 'complete' || needs.sync.outputs.status == 'in_progress'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SYNC_STATUS: ${{ needs.sync.outputs.status }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: |
+          if [ "$SYNC_STATUS" = "complete" ]; then
+            EMOJI="✅"
+            TITLE="集計完了"
+            TEXT="ミラプリ統計の集計が完了しました"
+          else
+            EMOJI="🔄"
+            TITLE="クロール中"
+            TEXT="クローラーがまだ実行中のため、集計はスキップされました"
+          fi
+
+          curl -sS -X POST "$SLACK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"text\": \"$EMOJI ミラプリ統計: $TITLE\",
+              \"blocks\": [
+                {
+                  \"type\": \"section\",
+                  \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"$EMOJI *ミラプリ統計: $TITLE*\n\n• $TEXT\n• 日時: $(date '+%Y-%m-%d %H:%M:%S') UTC\n• <${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|ログを確認>\"
+                  }
+                }
+              ]
+            }"

@@ -28,6 +28,7 @@ describe('runSync', () => {
           { slotPair: 'head-body', itemIdA: 'item1', itemIdB: 'item2', pairCount: 10, rank: 1 },
         ]),
       isCrawlComplete: vi.fn().mockResolvedValue(true),
+      getCrawlStatus: vi.fn().mockResolvedValue('complete'),
       getDataDateRange: vi.fn().mockResolvedValue({
         dataFrom: new Date('2025-01-01T00:00:00Z'),
         dataTo: new Date('2025-01-18T12:00:00Z'),
@@ -260,8 +261,23 @@ describe('runSync', () => {
   });
 
   describe('全完了チェック', () => {
-    it('scraper未完了時はスキップする', async () => {
-      vi.mocked(mockAggregator.isCrawlComplete).mockResolvedValue(false);
+    it('crawlProgressがない場合はスキップする', async () => {
+      vi.mocked(mockAggregator.getCrawlStatus).mockResolvedValue('no_progress');
+
+      const result = await runSync(deps, {
+        itemsOnly: false,
+        statsOnly: false,
+        dryRun: false,
+      });
+
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toContain('No crawl progress found');
+      expect(mockClient.postItems).not.toHaveBeenCalled();
+      expect(mockAggregator.cleanup).not.toHaveBeenCalled();
+    });
+
+    it('scraper実行中の場合はスキップする', async () => {
+      vi.mocked(mockAggregator.getCrawlStatus).mockResolvedValue('in_progress');
 
       const result = await runSync(deps, {
         itemsOnly: false,
@@ -276,7 +292,7 @@ describe('runSync', () => {
     });
 
     it('dry-run時は全完了チェックをスキップする', async () => {
-      vi.mocked(mockAggregator.isCrawlComplete).mockResolvedValue(false);
+      vi.mocked(mockAggregator.getCrawlStatus).mockResolvedValue('in_progress');
 
       const result = await runSync(deps, {
         itemsOnly: false,
@@ -285,7 +301,7 @@ describe('runSync', () => {
       });
 
       expect(result.errors).toHaveLength(0);
-      expect(mockAggregator.isCrawlComplete).not.toHaveBeenCalled();
+      expect(mockAggregator.getCrawlStatus).not.toHaveBeenCalled();
     });
   });
 

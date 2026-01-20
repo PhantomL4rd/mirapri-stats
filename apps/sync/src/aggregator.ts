@@ -50,12 +50,16 @@ export interface DataDateRange {
   dataTo: Date | null;
 }
 
+export type CrawlStatus = 'no_progress' | 'in_progress' | 'complete';
+
 export interface Aggregator {
   extractUniqueItems(): Promise<ExtractedItem[]>;
   aggregateUsage(): Promise<AggregatedUsage[]>;
   aggregatePairs(): Promise<AggregatedPair[]>;
   /** scraper が全完了しているか確認 */
   isCrawlComplete(): Promise<boolean>;
+  /** クロール状態を3値で取得 */
+  getCrawlStatus(): Promise<CrawlStatus>;
   /** characters_glamour.fetched_at の MIN/MAX を取得 */
   getDataDateRange(): Promise<DataDateRange>;
   /** Supabase のデータをクリーンアップ（sync 成功後に呼び出し） */
@@ -127,16 +131,29 @@ export function createAggregator(deps: AggregatorDependencies): Aggregator {
      * exitReason が設定されていれば完了（COMPLETED または LIMIT_REACHED）
      */
     async isCrawlComplete(): Promise<boolean> {
+      const status = await this.getCrawlStatus();
+      return status === 'complete';
+    },
+
+    /**
+     * クロール状態を3値で取得
+     * - no_progress: crawlProgress レコードが存在しない
+     * - in_progress: レコードはあるが完了していない
+     * - complete: exitReason が COMPLETED または LIMIT_REACHED
+     */
+    async getCrawlStatus(): Promise<CrawlStatus> {
       const result = await db.select().from(crawlProgress).limit(1);
 
       if (result.length === 0) {
-        // 進捗レコードがない = まだ開始していない
-        return false;
+        return 'no_progress';
       }
 
       const progress = result[0]!.progress;
-      // exitReason が設定されていれば同期可能
-      return progress.exitReason === 'COMPLETED' || progress.exitReason === 'LIMIT_REACHED';
+      if (progress.exitReason === 'COMPLETED' || progress.exitReason === 'LIMIT_REACHED') {
+        return 'complete';
+      }
+
+      return 'in_progress';
     },
 
     /**

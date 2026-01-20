@@ -28,10 +28,14 @@ export async function runSync(
 
   // 全完了チェック（dry-run 以外）
   if (!options.dryRun) {
-    console.log('[Sync] Checking if crawl is complete...');
-    const isComplete = await aggregator.isCrawlComplete();
-    console.log(`[Sync] Crawl complete: ${isComplete}`);
-    if (!isComplete) {
+    console.log('[Sync] Checking crawl status...');
+    const crawlStatus = await aggregator.getCrawlStatus();
+    console.log(`[Sync] Crawl status: ${crawlStatus}`);
+    if (crawlStatus === 'no_progress') {
+      result.errors.push('No crawl progress found, skipping sync');
+      return result;
+    }
+    if (crawlStatus === 'in_progress') {
       result.errors.push('Scraper not finished yet, skipping sync');
       return result;
     }

@@ -1,7 +1,10 @@
 name: Run Crawler
 
 on:
-  workflow_dispatch: # Manual trigger only
+  workflow_dispatch: # Manual trigger
+  schedule:
+    # First Wednesday of each month at 00:00 UTC (09:00 JST)
+    - cron: '0 0 1-7 * 3'
 
 env:
   FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
