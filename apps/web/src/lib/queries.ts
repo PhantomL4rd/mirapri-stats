@@ -210,24 +210,59 @@ function hiraganaToKatakana(str: string): string {
  */
 /**
  * 名脇役ランキング（Hidden Gems）を取得
- * pairs テーブルで rank > 3（4位以下）として多く登場するアイテム
+ * pairs テーブルで rank > 5（6位以下）として多く登場するアイテム
+ * 人気ランキング上位は除外
  *
  * @param db D1Database
  * @param slotId フィルタするスロットID（1-5）、nullで全スロット
  * @param limit 取得件数
  * @param version バージョン（省略時は active_version）
+ * @param excludeTopN 人気ランキング上位N件を除外（0で除外なし）
+ *
+ * 【除外方法のメモ（将来の調整用）】
+ * 現在: 同スロットの人気ランキング上位N件を除外
+ * 代替案1: rank<=5での登場回数が0のアイテムのみ表示（厳密な隠れた名品）
+ *   → WHERE句に追加: AND u.item_id NOT IN (SELECT partner_item_id FROM pairs WHERE version = ? AND rank <= 5)
+ * 代替案2: rank<=5での登場回数が閾値以下のアイテムのみ表示
+ *   → HAVING句でフィルタ: HAVING top_rank_count <= 3
  */
-export async function getSupportingActorRanking(
+export async function getHiddenGemsRanking(
   db: D1Database,
   slotId: number | null = 2,
   limit = 10,
   version?: string,
+  excludeTopN = 10,
 ): Promise<VersatilityItem[]> {
   const v = version ?? (await getActiveVersion(db));
 
   // スロットフィルタの条件
   const slotCondition = slotId !== null ? 'AND u.slot_id = ?' : '';
-  const bindings = slotId !== null ? [v, v, slotId, limit] : [v, v, limit];
+
+  // 人気ランキング除外のサブクエリ（同スロット上位N件）
+  const excludeCondition =
+    excludeTopN > 0 && slotId !== null
+      ? `AND u.item_id NOT IN (
+          SELECT sub_u.item_id
+          FROM usage sub_u
+          INNER JOIN (
+            SELECT partner_item_id, COUNT(*) AS vs
+            FROM pairs
+            WHERE version = ? AND rank <= 5
+            GROUP BY partner_item_id
+          ) sub_v ON sub_u.item_id = sub_v.partner_item_id
+          WHERE sub_u.version = ? AND sub_u.slot_id = ?
+          ORDER BY sub_v.vs DESC, sub_u.usage_count DESC
+          LIMIT ?
+        )`
+      : '';
+
+  // バインディングを構築
+  const bindings: (string | number)[] = [v, v];
+  if (slotId !== null) bindings.push(slotId);
+  if (excludeTopN > 0 && slotId !== null) {
+    bindings.push(v, v, slotId, excludeTopN);
+  }
+  bindings.push(limit);
 
   const query = `
     SELECT
@@ -245,6 +280,7 @@ export async function getSupportingActorRanking(
     ) v ON u.item_id = v.partner_item_id
     WHERE u.version = ?
       ${slotCondition}
+      ${excludeCondition}
     ORDER BY versatility_score DESC, u.usage_count DESC
     LIMIT ?
   `;
