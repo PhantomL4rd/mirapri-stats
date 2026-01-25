@@ -48,7 +48,8 @@ const nextUpdateDate = showFreshness ? getNextUpdateDate(freshness!.dataTo) : nu
     <meta name="description" content={description} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content="/ogp.png" />
+    <meta property="og:url" content={Astro.url.href} />
+    <meta property="og:image" content={new URL('/ogp.png', Astro.site ?? Astro.url.origin).href} />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
