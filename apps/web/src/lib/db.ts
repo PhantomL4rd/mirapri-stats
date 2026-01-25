@@ -1,14 +1,13 @@
 import type { D1Database } from '@cloudflare/workers-types';
 
 /**
- * active_version を取得
+ * active_version を取得（sync_versions の最新バージョン）
  */
 export async function getActiveVersion(db: D1Database): Promise<string> {
   const result = await db
-    .prepare('SELECT value FROM meta WHERE key = ?')
-    .bind('active_version')
-    .first<{ value: string }>();
-  return result?.value ?? '0';
+    .prepare('SELECT version FROM sync_versions ORDER BY synced_at DESC LIMIT 1')
+    .first<{ version: string }>();
+  return result?.version ?? '0';
 }
 
 /**
