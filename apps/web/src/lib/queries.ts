@@ -370,16 +370,11 @@ export interface SimilarItem {
 export async function getSimilarItems(
   db: D1Database,
   itemId: string,
+  slotId: number,
   limit = 3,
   version?: string,
 ): Promise<SimilarItem[]> {
   const v = version ?? (await getActiveVersion(db));
-
-  // ターゲットアイテムのスロットIDを取得
-  const targetItem = await getItemInfo(db, itemId);
-  if (!targetItem) {
-    return [];
-  }
 
   const query = `
     WITH target_partners AS (
@@ -410,15 +405,12 @@ export async function getSimilarItems(
     LIMIT ?
   `;
 
-  const result = await db
-    .prepare(query)
-    .bind(v, itemId, v, itemId, v, targetItem.slotId, limit)
-    .all<{
-      item_id: string;
-      item_name: string;
-      slot_id: number;
-      similarity_score: number;
-    }>();
+  const result = await db.prepare(query).bind(v, itemId, v, itemId, v, slotId, limit).all<{
+    item_id: string;
+    item_name: string;
+    slot_id: number;
+    similarity_score: number;
+  }>();
 
   return (result.results ?? []).map((row) => ({
     itemId: row.item_id,

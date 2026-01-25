@@ -18,19 +18,21 @@ const versionParam = url.searchParams.get('version');
 const db = Astro.locals.runtime.env.DB;
 
 // バージョン一覧を取得し、リクエストされたバージョンを検証
-const versions = await getAvailableVersions(db);
-const currentVersion = await getQueryVersion(db, versionParam);
-
-const [itemInfo, partnerItems, freshness, similarItems] = await Promise.all([
+const [versions, currentVersion, itemInfo] = await Promise.all([
+  getAvailableVersions(db),
+  getQueryVersion(db, versionParam),
   getItemInfo(db, itemId),
-  getPartnerItems(db, itemId, 10, currentVersion),
-  getDataFreshness(db, currentVersion),
-  getSimilarItems(db, itemId, 3, currentVersion),
 ]);
 
 if (!itemInfo) {
   return Astro.redirect('/');
 }
+
+const [partnerItems, freshness, similarItems] = await Promise.all([
+  getPartnerItems(db, itemId, 10, currentVersion),
+  getDataFreshness(db, currentVersion),
+  getSimilarItems(db, itemId, itemInfo.slotId, 3, currentVersion),
+]);
 
 const slotName = SLOT_NAMES[itemInfo.slotId] ?? '装備';
 

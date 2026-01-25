@@ -53,7 +53,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       });
     }
 
-    const items = await getSimilarItems(db, itemId, limit, version);
+    const items = await getSimilarItems(db, itemId, targetItem.slotId, limit, version);
 
     return new Response(JSON.stringify({ items, targetItem }), {
       headers: { 'Content-Type': 'application/json' },
