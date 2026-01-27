@@ -82,11 +82,11 @@
     aria-label="バージョン選択を閉じる"
   ></button>
 
-  <div class="fixed top-14 right-4 z-50 w-56 bg-white text-gray-900 rounded-lg shadow-xl border border-gray-200 overflow-hidden">
-    <div class="p-3 border-b border-gray-200">
+  <div class="fixed top-14 right-4 z-50 w-56 bg-card text-card-foreground rounded-lg shadow-xl border border-border overflow-hidden">
+    <div class="p-3 border-b border-border">
       <p class="text-sm font-medium">データ期間</p>
       {#if isViewingOldData}
-        <p class="text-xs text-amber-600 mt-1">過去データを表示中</p>
+        <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">過去データを表示中</p>
       {/if}
     </div>
     <ul class="max-h-60 overflow-y-auto">
@@ -95,8 +95,8 @@
           <button
             type="button"
             class={cn(
-              'w-full px-4 py-3 text-left text-sm hover:bg-gray-100 transition-colors',
-              v.version === currentVersion && 'bg-gray-100 font-medium'
+              'w-full px-4 py-3 text-left text-sm hover:bg-muted/50 transition-colors',
+              v.version === currentVersion && 'bg-muted font-medium'
             )}
             onclick={() => select(v.version)}
           >

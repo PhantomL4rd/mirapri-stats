@@ -63,4 +63,20 @@
   width: auto !important;
   height: auto !important;
   overflow: visible !important;
+}
+
+/* Safe area for fixed elements */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }     
