@@ -2,15 +2,25 @@ name: Supabase Keep-Alive
 
 on:
   schedule:
-    # Every 2 days at 9:00 UTC (18:00 JST)
-    - cron: '0 0 */3 * *'
+    # Everyday at 0:00 UTC (9:00 JST)
+    - cron: '0 0 * * *'
   workflow_dispatch: # Manual trigger
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase
+      - name: Ping Supabase via REST API
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM crawl_progress LIMIT 1;"
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${SUPABASE_URL}/rest/v1/crawl_progress?select=count&limit=1" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}")
+          echo "HTTP status: $response"
+          if [ "$response" -ne 200 ] && [ "$response" -ne 206 ]; then
+            echo "::error::Supabase ping failed with status $response"
+            exit 1
+          fi
