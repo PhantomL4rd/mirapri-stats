@@ -55,7 +55,7 @@ jobs:
               \"config\": {
                 \"image\": \"${IMAGE_REF}\",
                 \"init\": {
-                  \"exec\": [\"node\", \"dist/crawler-cli.js\", \"--dc\", \"Gaia\"]
+                  \"exec\": [\"node\", \"dist/crawler-cli.bundle.mjs\", \"--dc\", \"Gaia\"]
                 },
                 \"auto_destroy\": true,
                 \"restart\": {
@@ -83,7 +83,7 @@ jobs:
               \"config\": {
                 \"image\": \"${IMAGE_REF}\",
                 \"init\": {
-                  \"exec\": [\"node\", \"dist/crawler-cli.js\", \"--dc\", \"Mana\"]
+                  \"exec\": [\"node\", \"dist/crawler-cli.bundle.mjs\", \"--dc\", \"Mana\"]
                 },
                 \"auto_destroy\": true,
                 \"restart\": {
@@ -111,7 +111,7 @@ jobs:
               \"config\": {
                 \"image\": \"${IMAGE_REF}\",
                 \"init\": {
-                  \"exec\": [\"node\", \"dist/crawler-cli.js\", \"--dc\", \"Elemental\"]
+                  \"exec\": [\"node\", \"dist/crawler-cli.bundle.mjs\", \"--dc\", \"Elemental\"]
                 },
                 \"auto_destroy\": true,
                 \"restart\": {
@@ -139,7 +139,7 @@ jobs:
               \"config\": {
                 \"image\": \"${IMAGE_REF}\",
                 \"init\": {
-                  \"exec\": [\"node\", \"dist/crawler-cli.js\", \"--dc\", \"Meteor\"]
+                  \"exec\": [\"node\", \"dist/crawler-cli.bundle.mjs\", \"--dc\", \"Meteor\"]
                 },
                 \"auto_destroy\": true,
                 \"restart\": {
