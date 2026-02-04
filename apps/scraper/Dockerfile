@@ -59,5 +59,6 @@ COPY --from=build /app/apps/scraper/dist ./apps/scraper/dist
 ENV NODE_ENV=production
 WORKDIR /app/apps/scraper
 
-z
+# Run bundled JS directly (no tsx overhead)
+ENTRYPOINT ["node", "dist/crawler-cli.bundle.mjs"]
 CMD []
