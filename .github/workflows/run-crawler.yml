@@ -3,8 +3,8 @@ name: Run Crawler
 on:
   workflow_dispatch: # Manual trigger
   schedule:
-    # First Wednesday of each month at 00:00 UTC (09:00 JST)
-    - cron: '0 0 1-7 * 3'
+    # Every Wednesday at 00:00 UTC (09:00 JST), filtered to first week only
+    - cron: '0 0 * * 3'
 
 env:
   FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
@@ -15,6 +15,15 @@ jobs:
   crawl:
     runs-on: ubuntu-latest
     steps:
+      - name: Check if first Wednesday of month
+        if: github.event_name == 'schedule'
+        run: |
+          DAY=$(date -u +%d)
+          if [ "$DAY" -gt 7 ]; then
+            echo "Not the first week of the month (day=$DAY), skipping."
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
 
       - name: Install flyctl
