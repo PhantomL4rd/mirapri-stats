@@ -54,6 +54,14 @@ jobs:
         env:
           IMAGE_REF: ${{ steps.build.outputs.ref }}
         run: |
+          EXISTING=$(curl -sS \
+            -H "Authorization: Bearer ${FLY_API_TOKEN}" \
+            "${FLY_API_HOSTNAME}/v1/apps/${APP_NAME}/machines" | \
+            jq '[.[] | select(.name | startswith("crawler-gaia-")) | select(.state == "started" or .state == "starting")] | length')
+          if [ "$EXISTING" -gt "0" ]; then
+            echo "Crawler for Gaia is already running, skipping"
+            exit 0
+          fi
           curl -sS -X POST \
             -H "Authorization: Bearer ${FLY_API_TOKEN}" \
             -H "Content-Type: application/json" \
@@ -82,6 +90,14 @@ jobs:
         env:
           IMAGE_REF: ${{ steps.build.outputs.ref }}
         run: |
+          EXISTING=$(curl -sS \
+            -H "Authorization: Bearer ${FLY_API_TOKEN}" \
+            "${FLY_API_HOSTNAME}/v1/apps/${APP_NAME}/machines" | \
+            jq '[.[] | select(.name | startswith("crawler-mana-")) | select(.state == "started" or .state == "starting")] | length')
+          if [ "$EXISTING" -gt "0" ]; then
+            echo "Crawler for Mana is already running, skipping"
+            exit 0
+          fi
           curl -sS -X POST \
             -H "Authorization: Bearer ${FLY_API_TOKEN}" \
             -H "Content-Type: application/json" \
@@ -110,6 +126,14 @@ jobs:
         env:
           IMAGE_REF: ${{ steps.build.outputs.ref }}
         run: |
+          EXISTING=$(curl -sS \
+            -H "Authorization: Bearer ${FLY_API_TOKEN}" \
+            "${FLY_API_HOSTNAME}/v1/apps/${APP_NAME}/machines" | \
+            jq '[.[] | select(.name | startswith("crawler-elemental-")) | select(.state == "started" or .state == "starting")] | length')
+          if [ "$EXISTING" -gt "0" ]; then
+            echo "Crawler for Elemental is already running, skipping"
+            exit 0
+          fi
           curl -sS -X POST \
             -H "Authorization: Bearer ${FLY_API_TOKEN}" \
             -H "Content-Type: application/json" \
@@ -138,6 +162,14 @@ jobs:
         env:
           IMAGE_REF: ${{ steps.build.outputs.ref }}
         run: |
+          EXISTING=$(curl -sS \
+            -H "Authorization: Bearer ${FLY_API_TOKEN}" \
+            "${FLY_API_HOSTNAME}/v1/apps/${APP_NAME}/machines" | \
+            jq '[.[] | select(.name | startswith("crawler-meteor-")) | select(.state == "started" or .state == "starting")] | length')
+          if [ "$EXISTING" -gt "0" ]; then
+            echo "Crawler for Meteor is already running, skipping"
+            exit 0
+          fi
           curl -sS -X POST \
             -H "Authorization: Bearer ${FLY_API_TOKEN}" \
             -H "Content-Type: application/json" \
