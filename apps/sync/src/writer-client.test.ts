@@ -265,7 +265,7 @@ describe('WriterClient', () => {
         baseItemId: `itemA${i}`,
         partnerItemId: `itemB${i}`,
         pairCount: i,
-        rank: (i % 10) + 1,
+        rank: i + 1,
       }));
 
       const result = await client.postPairs('v1', pairs);

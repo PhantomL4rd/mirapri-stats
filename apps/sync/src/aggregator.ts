@@ -11,10 +11,9 @@ import type { AggregatedPair, AggregatedUsage, ExtractedItem } from './types.js'
 const MIN_COUNT_THRESHOLD = 3;
 
 /**
- * ペアランキングの上位件数
- * 各アイテムに対して、組み合わせ相手の上位N件を保存
+ * ペアランキングの上位件数（無制限）
+ * MIN_COUNT_THRESHOLD を満たす全ペアを保存し、表示件数はフロントエンドで制御
  */
-const TOP_PAIRS_LIMIT = 10;
 
 /**
  * Usage集計から除外するアイテムID
@@ -236,7 +235,7 @@ async function aggregateBidirectionalPairs(
              ) AS rank
       FROM directed
     )
-    SELECT * FROM ranked WHERE rank <= ${TOP_PAIRS_LIMIT}
+    SELECT * FROM ranked
     ORDER BY base_slot_id, partner_slot_id, base_item_id, rank
   `);
 

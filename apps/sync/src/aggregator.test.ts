@@ -256,22 +256,22 @@ describe('Aggregator', () => {
       expect(result).toEqual([]);
     });
 
-    it('各方向で TOP10 のペアが含まれる', async () => {
-      // head-bodyの双方向ペア
-      const headToBody = Array.from({ length: 10 }, (_, i) => ({
+    it('各方向の全ペアがランク付きで含まれる', async () => {
+      // head-bodyの双方向ペア（上限なし）
+      const headToBody = Array.from({ length: 15 }, (_, i) => ({
         base_slot_id: '1',
         partner_slot_id: '2',
         base_item_id: 'head1',
         partner_item_id: `body${i + 1}`,
-        pair_count: String(100 - i * 10),
+        pair_count: String(100 - i * 5),
         rank: String(i + 1),
       }));
-      const bodyToHead = Array.from({ length: 10 }, (_, i) => ({
+      const bodyToHead = Array.from({ length: 15 }, (_, i) => ({
         base_slot_id: '2',
         partner_slot_id: '1',
         base_item_id: 'body1',
         partner_item_id: `head${i + 1}`,
-        pair_count: String(100 - i * 10),
+        pair_count: String(100 - i * 5),
         rank: String(i + 1),
       }));
 
@@ -286,15 +286,15 @@ describe('Aggregator', () => {
       const aggregator = createAggregator({ db: mockDb });
       const result = await aggregator.aggregatePairs();
 
-      // head→body が 10件
+      // head→body が 15件（上限なし）
       const headToBodyResults = result.filter((r) => r.baseSlotId === 1 && r.partnerSlotId === 2);
-      expect(headToBodyResults).toHaveLength(10);
+      expect(headToBodyResults).toHaveLength(15);
       expect(headToBodyResults[0]!.rank).toBe(1);
-      expect(headToBodyResults[9]!.rank).toBe(10);
+      expect(headToBodyResults[14]!.rank).toBe(15);
 
-      // body→head が 10件
+      // body→head が 15件
       const bodyToHeadResults = result.filter((r) => r.baseSlotId === 2 && r.partnerSlotId === 1);
-      expect(bodyToHeadResults).toHaveLength(10);
+      expect(bodyToHeadResults).toHaveLength(15);
     });
   });
 

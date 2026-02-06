@@ -89,7 +89,7 @@ export const pairs = sqliteTable(
     partnerItemId: text('partner_item_id').notNull(),
     /** ペア出現回数 */
     pairCount: integer('pair_count').notNull(),
-    /** ランク（1-10） */
+    /** ランク（1〜、pair_count DESC順） */
     rank: integer('rank').notNull(),
   },
   (table) => [

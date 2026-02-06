@@ -400,7 +400,7 @@ describe('POST /api/pairs', () => {
     expect(body.error).toContain('partnerSlotId');
   });
 
-  it('returns 400 for invalid rank', async () => {
+  it('returns 400 for invalid rank (0 or negative)', async () => {
     const ctx = createExecutionContext();
     const response = await app.fetch(
       new Request('http://localhost/api/pairs?version=test-version-001', {
@@ -417,7 +417,7 @@ describe('POST /api/pairs', () => {
               baseItemId: 'item-001',
               partnerItemId: 'item-002',
               pairCount: 50,
-              rank: 11,
+              rank: 0,
             },
           ],
         }),
