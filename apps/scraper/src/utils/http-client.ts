@@ -4,7 +4,7 @@ import type { HTTPResult } from '@mirapri/shared';
  * デフォルトのレート制限間隔（ミリ秒）
  * Lodestoneへの負荷を考慮した待機時間
  */
-const DEFAULT_RATE_LIMIT_MS = 10000;
+const DEFAULT_RATE_LIMIT_MS = 3000;
 
 /**
  * HTTPクライアント設定
