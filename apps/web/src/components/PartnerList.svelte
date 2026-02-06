@@ -66,7 +66,6 @@
 
 {#if variant === 'card'}
   <div class="space-y-2">
-    <h3 class="text-sm font-medium text-muted-foreground">トップ</h3>
     <ul class="space-y-2">
       {#each topItems as item (item.itemId)}
         {@render itemRow(item, true)}
@@ -93,7 +92,6 @@
   {/if}
 {:else}
   <div>
-    <h3 class="text-sm font-medium text-muted-foreground p-3 border-t border-border">トップ</h3>
     <ul class="border-t border-border">
       {#each topItems as item (item.itemId)}
         {@render itemRow(item, false)}
