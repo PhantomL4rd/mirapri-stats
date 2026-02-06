@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PrivacyRibbon from '../../components/PrivacyRibbon.astro';
+import PartnerList from '../../components/PartnerList.svelte';
 import { ArrowLeft } from 'lucide-svelte';
 import { getItemInfo, getPartnerItems, getDataFreshness, getSimilarItems } from '../../lib/queries';
 import { SLOT_NAMES, getQueryVersion, getAvailableVersions } from '../../lib/db';
@@ -29,7 +30,7 @@ if (!itemInfo) {
 }
 
 const [partnerItems, freshness, similarItems] = await Promise.all([
-  getPartnerItems(db, itemId, 10, currentVersion),
+  getPartnerItems(db, itemId, 30, currentVersion),
   getDataFreshness(db, currentVersion),
   getSimilarItems(db, itemId, itemInfo.slotId, 3, currentVersion),
 ]);
@@ -94,51 +95,13 @@ function getLodestoneUrl(id: string): string {
                 <summary class="flex cursor-pointer items-center justify-between p-3 font-medium text-card-foreground hover:bg-muted/50">
                   <span>{slotLabel}</span>
                 </summary>
-                <ul class="border-t border-border">
-                  {items.map((item) => (
-                    <li class="flex items-center gap-3 border-b border-border last:border-b-0 p-3">
-                      <a
-                        href={`/item/${item.itemId}`}
-                        class="flex-1 font-medium text-card-foreground hover:underline inline-flex items-center gap-1"
-                      >
-                        {item.itemName}
-                      </a>
-                      <a
-                        href={getLodestoneUrl(item.itemId)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="eorzeadb_link text-xs text-muted-foreground hover:text-foreground"
-                      >
-                        Lodestone
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+                <PartnerList items={items} variant="bordered" client:load />
               </details>
             );
           })
         ) : (
           // 頭・手・足: フラットリスト（単一部位とのペアのみ）
-          <ul class="space-y-2">
-            {partnerItems.map((item) => (
-              <li class="flex items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-sm">
-                <a
-                  href={`/item/${item.itemId}`}
-                  class="flex-1 font-medium text-card-foreground hover:underline inline-flex items-center gap-1"
-                >
-                  {item.itemName}
-                </a>
-                <a
-                  href={getLodestoneUrl(item.itemId)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="eorzeadb_link text-xs text-muted-foreground hover:text-foreground"
-                >
-                  Lodestone
-                </a>
-              </li>
-            ))}
-          </ul>
+          <PartnerList items={partnerItems} variant="card" client:load />
         )
       }
     </div>
