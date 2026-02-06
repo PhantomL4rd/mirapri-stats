@@ -11,6 +11,9 @@ importers:
       '@biomejs/biome':
         specifier: ^2.3.11
         version: 2.3.11
+      wrangler:
+        specifier: '4'
+        version: 4.59.2(@cloudflare/workers-types@4.20260115.0)
 
   apps/scraper:
     dependencies:
