@@ -1,23 +1,6 @@
 import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 /**
- * メタデータテーブル
- * active_version など、システム設定を key-value で管理
- */
-export const meta = sqliteTable('meta', {
-  /** 設定キー */
-  key: text('key').primaryKey(),
-  /** 設定値 */
-  value: text('value').notNull(),
-});
-
-/** SELECT時の型 */
-export type Meta = typeof meta.$inferSelect;
-
-/** INSERT時の型 */
-export type NewMeta = typeof meta.$inferInsert;
-
-/**
  * アイテムマスタテーブル
  * Lodestone から取得した装備情報
  * バージョン管理対象外（UPSERT で更新）

@@ -1,8 +1,7 @@
-import { meta, pairs, syncVersions, usage } from '@mirapri/shared/d1-schema';
+import { pairs, syncVersions, usage } from '@mirapri/shared/d1-schema';
 import { desc, eq, notInArray } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 
-const ACTIVE_VERSION_KEY = 'active_version';
 const DEFAULT_VERSION = '0';
 const VERSIONS_TO_KEEP = 3;
 
@@ -47,12 +46,13 @@ export function createVersionManager(deps: VersionManagerDependencies): VersionM
   return {
     async getActiveVersion(): Promise<string> {
       const result = await db
-        .select({ value: meta.value })
-        .from(meta)
-        .where(eq(meta.key, ACTIVE_VERSION_KEY))
+        .select({ version: syncVersions.version })
+        .from(syncVersions)
+        .orderBy(desc(syncVersions.syncedAt))
+        .limit(1)
         .get();
 
-      return result?.value ?? DEFAULT_VERSION;
+      return result?.version ?? DEFAULT_VERSION;
     },
 
     async startSync(): Promise<string> {
@@ -62,16 +62,7 @@ export function createVersionManager(deps: VersionManagerDependencies): VersionM
     async commitSync(options: CommitSyncOptions): Promise<void> {
       const { version, dataFrom, dataTo } = options;
 
-      // active_version を更新
-      await db
-        .insert(meta)
-        .values({ key: ACTIVE_VERSION_KEY, value: version })
-        .onConflictDoUpdate({
-          target: meta.key,
-          set: { value: version },
-        });
-
-      // sync_versions に新バージョンを登録
+      // sync_versions に新バージョンを登録（最新レコード = active version）
       await db.insert(syncVersions).values({
         version,
         dataFrom: dataFrom ?? null,

@@ -5,9 +5,7 @@ import app from './index.js';
 const AUTH_TOKEN = 'test-token';
 
 async function runMigrations(db: D1Database) {
-  // meta table (version management)
   await db.batch([
-    db.prepare(`CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`),
     db.prepare(
       `CREATE TABLE IF NOT EXISTS items (id TEXT PRIMARY KEY, name TEXT NOT NULL, slot_id INTEGER NOT NULL CHECK (slot_id BETWEEN 1 AND 5))`,
     ),

@@ -3,13 +3,14 @@ import { createVersionManager, type VersionManagerDependencies } from './version
 
 describe('VersionManager', () => {
   describe('getActiveVersion', () => {
-    it('meta テーブルから active_version を取得する', async () => {
-      const mockGet = vi.fn().mockResolvedValue({ value: 'test-version-123' });
-      const mockWhere = vi.fn(() => ({ get: mockGet }));
+    it('sync_versions の最新レコードから version を取得する', async () => {
+      const mockGet = vi.fn().mockResolvedValue({ version: 'test-version-123' });
+      const mockLimit = vi.fn(() => ({ get: mockGet }));
+      const mockOrderBy = vi.fn(() => ({ limit: mockLimit }));
       const mockDb = {
         select: vi.fn(() => ({
           from: vi.fn(() => ({
-            where: mockWhere,
+            orderBy: mockOrderBy,
           })),
         })),
       } as unknown as VersionManagerDependencies['db'];
@@ -20,13 +21,14 @@ describe('VersionManager', () => {
       expect(result).toBe('test-version-123');
     });
 
-    it('active_version が存在しない場合は "0" を返す', async () => {
+    it('sync_versions が空の場合は "0" を返す', async () => {
       const mockGet = vi.fn().mockResolvedValue(undefined);
-      const mockWhere = vi.fn(() => ({ get: mockGet }));
+      const mockLimit = vi.fn(() => ({ get: mockGet }));
+      const mockOrderBy = vi.fn(() => ({ limit: mockLimit }));
       const mockDb = {
         select: vi.fn(() => ({
           from: vi.fn(() => ({
-            where: mockWhere,
+            orderBy: mockOrderBy,
           })),
         })),
       } as unknown as VersionManagerDependencies['db'];
@@ -63,16 +65,9 @@ describe('VersionManager', () => {
   });
 
   describe('commitSync', () => {
-    it('meta.active_version を更新し、sync_versions に登録する', async () => {
-      const mockOnConflictDoUpdate = vi.fn().mockResolvedValue(undefined);
-      const mockInsertValues = vi.fn(() => ({
-        onConflictDoUpdate: mockOnConflictDoUpdate,
-      }));
-      const mockSyncVersionsInsertValues = vi.fn().mockResolvedValue(undefined);
-      const mockInsert = vi
-        .fn()
-        .mockReturnValueOnce({ values: mockInsertValues }) // meta へのinsert
-        .mockReturnValueOnce({ values: mockSyncVersionsInsertValues }); // sync_versions へのinsert
+    it('sync_versions に登録する', async () => {
+      const mockInsertValues = vi.fn().mockResolvedValue(undefined);
+      const mockInsert = vi.fn().mockReturnValueOnce({ values: mockInsertValues });
 
       const mockDb = {
         insert: mockInsert,
@@ -85,20 +80,12 @@ describe('VersionManager', () => {
         dataTo: '2024-01-07T00:00:00Z',
       });
 
-      expect(mockInsert).toHaveBeenCalledTimes(2);
-      expect(mockOnConflictDoUpdate).toHaveBeenCalled();
+      expect(mockInsert).toHaveBeenCalledTimes(1);
     });
 
     it('freshness が undefined でも動作する', async () => {
-      const mockOnConflictDoUpdate = vi.fn().mockResolvedValue(undefined);
-      const mockInsertValues = vi.fn(() => ({
-        onConflictDoUpdate: mockOnConflictDoUpdate,
-      }));
-      const mockSyncVersionsInsertValues = vi.fn().mockResolvedValue(undefined);
-      const mockInsert = vi
-        .fn()
-        .mockReturnValueOnce({ values: mockInsertValues })
-        .mockReturnValueOnce({ values: mockSyncVersionsInsertValues });
+      const mockInsertValues = vi.fn().mockResolvedValue(undefined);
+      const mockInsert = vi.fn().mockReturnValueOnce({ values: mockInsertValues });
 
       const mockDb = {
         insert: mockInsert,
@@ -107,7 +94,7 @@ describe('VersionManager', () => {
       const vm = createVersionManager({ db: mockDb });
       await vm.commitSync({ version: 'new-version-456' });
 
-      expect(mockInsert).toHaveBeenCalledTimes(2);
+      expect(mockInsert).toHaveBeenCalledTimes(1);
     });
   });
 
