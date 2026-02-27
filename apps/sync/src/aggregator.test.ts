@@ -17,9 +17,9 @@ describe('Aggregator', () => {
       const result = await aggregator.extractUniqueItems();
 
       expect(result).toHaveLength(3);
-      expect(result[0]).toEqual({ id: 'item1', name: '頭装備', slotId: 1 });
-      expect(result[1]).toEqual({ id: 'item2', name: '胴装備', slotId: 2 });
-      expect(result[2]).toEqual({ id: 'item3', name: '別の頭装備', slotId: 1 });
+      expect(result[0]).toEqual({ id: 'item1', name: '頭装備', slotId: 1, iconUrl: null });
+      expect(result[1]).toEqual({ id: 'item2', name: '胴装備', slotId: 2, iconUrl: null });
+      expect(result[2]).toEqual({ id: 'item3', name: '別の頭装備', slotId: 1, iconUrl: null });
     });
 
     it('空の結果の場合は空配列を返す', async () => {

@@ -203,6 +203,7 @@ export function createWriterClient(config: WriterClientConfig): WriterClient {
               id: item.id,
               name: item.name,
               slotId: item.slotId,
+              iconUrl: item.iconUrl,
             })),
           }),
         });

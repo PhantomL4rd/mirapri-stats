@@ -95,6 +95,8 @@ export const itemsCache = pgTable(
     name: varchar('name', { length: 200 }).notNull(),
     /** 部位ID（1:head, 2:body, 3:hands, 4:legs, 5:feet） */
     slotId: smallint('slot_id').notNull(),
+    /** Lodestone アイコン画像URL */
+    iconUrl: varchar('icon_url', { length: 500 }),
     /** 初回登録日時 */
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },

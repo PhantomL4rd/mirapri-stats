@@ -81,10 +81,16 @@ export function createAggregator(deps: AggregatorDependencies): Aggregator {
           id: itemsCache.id,
           name: itemsCache.name,
           slotId: itemsCache.slotId,
+          iconUrl: itemsCache.iconUrl,
         })
         .from(itemsCache);
 
-      return result;
+      return result.map((row) => ({
+        id: row.id,
+        name: row.name,
+        slotId: row.slotId,
+        iconUrl: row.iconUrl ?? null,
+      }));
     },
 
     /**

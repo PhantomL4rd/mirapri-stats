@@ -7,7 +7,7 @@ const AUTH_TOKEN = 'test-token';
 async function runMigrations(db: D1Database) {
   await db.batch([
     db.prepare(
-      `CREATE TABLE IF NOT EXISTS items (id TEXT PRIMARY KEY, name TEXT NOT NULL, slot_id INTEGER NOT NULL CHECK (slot_id BETWEEN 1 AND 5))`,
+      `CREATE TABLE IF NOT EXISTS items (id TEXT PRIMARY KEY, name TEXT NOT NULL, slot_id INTEGER NOT NULL CHECK (slot_id BETWEEN 1 AND 5), icon_url TEXT)`,
     ),
     db.prepare(
       `CREATE TABLE IF NOT EXISTS usage (version TEXT NOT NULL, slot_id INTEGER NOT NULL, item_id TEXT NOT NULL, usage_count INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (version, slot_id, item_id))`,
@@ -185,8 +185,12 @@ describe('POST /api/usage', () => {
   beforeAll(async () => {
     await runMigrations(env.DB);
     // Insert items for foreign key constraint
-    await env.DB.exec(`INSERT OR IGNORE INTO items VALUES ('item-001', 'Test Head', 1)`);
-    await env.DB.exec(`INSERT OR IGNORE INTO items VALUES ('item-002', 'Test Body', 2)`);
+    await env.DB.exec(
+      `INSERT OR IGNORE INTO items (id, name, slot_id) VALUES ('item-001', 'Test Head', 1)`,
+    );
+    await env.DB.exec(
+      `INSERT OR IGNORE INTO items (id, name, slot_id) VALUES ('item-002', 'Test Body', 2)`,
+    );
   });
 
   it('inserts usage data successfully', async () => {
@@ -265,8 +269,12 @@ describe('POST /api/pairs', () => {
   beforeAll(async () => {
     await runMigrations(env.DB);
     // Insert items for foreign key constraint
-    await env.DB.prepare(`INSERT OR IGNORE INTO items VALUES ('item-001', 'Test Head', 1)`).run();
-    await env.DB.prepare(`INSERT OR IGNORE INTO items VALUES ('item-002', 'Test Body', 2)`).run();
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO items (id, name, slot_id) VALUES ('item-001', 'Test Head', 1)`,
+    ).run();
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO items (id, name, slot_id) VALUES ('item-002', 'Test Body', 2)`,
+    ).run();
   });
 
   it('inserts pair data successfully (bidirectional format)', async () => {

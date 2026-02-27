@@ -6,6 +6,7 @@
     itemId: string;
     itemName: string;
     slotId: number;
+    iconUrl: string | null;
   }
 
   interface Props {
@@ -159,7 +160,12 @@
                     onclick={() => selectItem(item)}
                     onmouseenter={() => (selectedIndex = index)}
                   >
-                    <span class="text-card-foreground">{item.itemName}</span>
+                    <span class="inline-flex items-center gap-2 text-card-foreground">
+                      {#if item.iconUrl}
+                        <img src={item.iconUrl} alt="" width="24" height="24" class="rounded" loading="lazy" />
+                      {/if}
+                      {item.itemName}
+                    </span>
                     <span class="text-xs text-muted-foreground">{SLOT_NAMES[item.slotId]}</span>
                   </button>
                 </li>

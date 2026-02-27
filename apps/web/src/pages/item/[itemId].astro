@@ -67,16 +67,21 @@ function getLodestoneUrl(id: string): string {
   <div class="space-y-6">
     <div>
       <p class="text-sm text-muted-foreground">{slotName}</p>
-      <h1 class="text-2xl font-bold text-balance">
-        <a
-          href={getLodestoneUrl(itemInfo.itemId)}
-          target="_blank"
-          rel="noopener noreferrer"
-          class="eorzeadb_link hover:underline"
-        >
-          {itemInfo.itemName}
-        </a>
-      </h1>
+      <div class="flex items-center gap-3">
+        {itemInfo.iconUrl && (
+          <img src={itemInfo.iconUrl} alt="" width="48" height="48" class="rounded" loading="lazy" />
+        )}
+        <h1 class="text-2xl font-bold text-balance">
+          <a
+            href={getLodestoneUrl(itemInfo.itemId)}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="eorzeadb_link hover:underline"
+          >
+            {itemInfo.itemName}
+          </a>
+        </h1>
+      </div>
       <p class="mt-1 text-sm text-muted-foreground">のベストマッチ</p>
     </div>
 
@@ -112,6 +117,9 @@ function getLodestoneUrl(id: string): string {
         <ul class="space-y-2">
           {similarItems.map((item) => (
             <li class="flex items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-sm">
+              {item.iconUrl && (
+                <img src={item.iconUrl} alt="" width="32" height="32" class="rounded" loading="lazy" />
+              )}
               <a
                 href={`/item/${item.itemId}`}
                 class="flex-1 font-medium text-card-foreground hover:underline"

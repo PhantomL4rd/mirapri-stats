@@ -14,6 +14,8 @@ export const items = sqliteTable(
     name: text('name').notNull(),
     /** 部位ID（1:head, 2:body, 3:hands, 4:legs, 5:feet） */
     slotId: integer('slot_id').notNull(),
+    /** Lodestone アイコン画像URL */
+    iconUrl: text('icon_url'),
   },
   (table) => [index('idx_items_slot_id').on(table.slotId)],
 );

@@ -9,6 +9,7 @@ export interface VersatilityItem {
   itemName: string;
   slotId: number;
   versatilityScore: number;
+  iconUrl: string | null;
 }
 
 /**
@@ -38,6 +39,7 @@ export async function getVersatilityRanking(
       u.item_id,
       i.name AS item_name,
       i.slot_id,
+      i.icon_url,
       COALESCE(v.versatility_score, 0) AS versatility_score
     FROM usage u
     INNER JOIN items i ON u.item_id = i.id
@@ -60,6 +62,7 @@ export async function getVersatilityRanking(
       item_id: string;
       item_name: string;
       slot_id: number;
+      icon_url: string | null;
       versatility_score: number;
     }>();
 
@@ -68,6 +71,7 @@ export async function getVersatilityRanking(
     itemName: row.item_name,
     slotId: row.slot_id,
     versatilityScore: row.versatility_score,
+    iconUrl: row.icon_url ?? null,
   }));
 }
 
@@ -78,6 +82,7 @@ export interface ItemInfo {
   itemId: string;
   itemName: string;
   slotId: number;
+  iconUrl: string | null;
 }
 
 /**
@@ -85,9 +90,9 @@ export interface ItemInfo {
  */
 export async function getItemInfo(db: D1Database, itemId: string): Promise<ItemInfo | null> {
   const result = await db
-    .prepare('SELECT id, name, slot_id FROM items WHERE id = ?')
+    .prepare('SELECT id, name, slot_id, icon_url FROM items WHERE id = ?')
     .bind(itemId)
-    .first<{ id: string; name: string; slot_id: number }>();
+    .first<{ id: string; name: string; slot_id: number; icon_url: string | null }>();
 
   if (!result) return null;
 
@@ -95,6 +100,7 @@ export async function getItemInfo(db: D1Database, itemId: string): Promise<ItemI
     itemId: result.id,
     itemName: result.name,
     slotId: result.slot_id,
+    iconUrl: result.icon_url ?? null,
   };
 }
 
@@ -107,6 +113,7 @@ export interface PartnerItem {
   slotId: number;
   /** ペア出現回数 */
   pairCount: number;
+  iconUrl: string | null;
 }
 
 /**
@@ -130,6 +137,7 @@ export async function getPartnerItems(
       p.partner_item_id AS item_id,
       i.name AS item_name,
       i.slot_id,
+      i.icon_url,
       p.pair_count
     FROM pairs p
     INNER JOIN items i ON p.partner_item_id = i.id
@@ -143,6 +151,7 @@ export async function getPartnerItems(
     item_id: string;
     item_name: string;
     slot_id: number;
+    icon_url: string | null;
     pair_count: number;
   }>();
 
@@ -151,6 +160,7 @@ export async function getPartnerItems(
     itemName: row.item_name,
     slotId: row.slot_id,
     pairCount: row.pair_count,
+    iconUrl: row.icon_url ?? null,
   }));
 }
 
@@ -189,6 +199,7 @@ export interface SearchResultItem {
   itemId: string;
   itemName: string;
   slotId: number;
+  iconUrl: string | null;
 }
 
 /**
@@ -269,6 +280,7 @@ export async function getHiddenGemsRanking(
       u.item_id,
       i.name AS item_name,
       i.slot_id,
+      i.icon_url,
       COALESCE(v.versatility_score, 0) AS versatility_score
     FROM usage u
     INNER JOIN items i ON u.item_id = i.id
@@ -292,6 +304,7 @@ export async function getHiddenGemsRanking(
       item_id: string;
       item_name: string;
       slot_id: number;
+      icon_url: string | null;
       versatility_score: number;
     }>();
 
@@ -300,6 +313,7 @@ export async function getHiddenGemsRanking(
     itemName: row.item_name,
     slotId: row.slot_id,
     versatilityScore: row.versatility_score,
+    iconUrl: row.icon_url ?? null,
   }));
 }
 
@@ -329,7 +343,7 @@ export async function searchItems(
 
   const result = await db
     .prepare(
-      `SELECT DISTINCT i.id, i.name, i.slot_id, u.usage_count
+      `SELECT DISTINCT i.id, i.name, i.slot_id, i.icon_url, u.usage_count
        FROM items i
        INNER JOIN pairs p ON i.id = p.base_item_id AND p.version = ?
        INNER JOIN usage u ON i.id = u.item_id AND u.version = ?
@@ -338,12 +352,19 @@ export async function searchItems(
        LIMIT ?`,
     )
     .bind(...bindings)
-    .all<{ id: string; name: string; slot_id: number; usage_count: number }>();
+    .all<{
+      id: string;
+      name: string;
+      slot_id: number;
+      icon_url: string | null;
+      usage_count: number;
+    }>();
 
   return (result.results ?? []).map((row) => ({
     itemId: row.id,
     itemName: row.name,
     slotId: row.slot_id,
+    iconUrl: row.icon_url ?? null,
   }));
 }
 
@@ -356,6 +377,7 @@ export interface SimilarItem {
   slotId: number;
   /** 類似度スコア（共通パートナーアイテムのペアカウント合計） */
   similarityScore: number;
+  iconUrl: string | null;
 }
 
 /**
@@ -396,6 +418,7 @@ export async function getSimilarItems(
       cs.similar_item AS item_id,
       i.name AS item_name,
       i.slot_id,
+      i.icon_url,
       cs.score AS similarity_score
     FROM candidate_scores cs
     INNER JOIN items i ON cs.similar_item = i.id
@@ -409,6 +432,7 @@ export async function getSimilarItems(
     item_id: string;
     item_name: string;
     slot_id: number;
+    icon_url: string | null;
     similarity_score: number;
   }>();
 
@@ -417,5 +441,6 @@ export async function getSimilarItems(
     itemName: row.item_name,
     slotId: row.slot_id,
     similarityScore: row.similarity_score,
+    iconUrl: row.icon_url ?? null,
   }));
 }

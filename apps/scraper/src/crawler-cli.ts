@@ -14,6 +14,7 @@ import {
   resolveWorlds,
   type SearchKeyGeneratorConfig,
 } from './crawler';
+import { fetchMissingIcons } from './icon-fetcher';
 import { createRepository } from './repository';
 import { createScraper } from './scraper';
 import { createHttpClient } from './utils/http-client';
@@ -71,6 +72,7 @@ interface ParsedArgs {
   dataCenter: DataCenterName | null;
   seed: number | null;
   limit: number;
+  skipIcons: boolean;
 }
 
 /**
@@ -85,6 +87,7 @@ function generateRandomSeed(): number {
  */
 function parseArgs(args: string[]): ParsedArgs {
   const dryRun = args.includes('--dry-run');
+  const skipIcons = args.includes('--skip-icons');
 
   // --world <name> または -w <name>
   const worldIndex = args.findIndex((a) => a === '--world' || a === '-w');
@@ -105,7 +108,7 @@ function parseArgs(args: string[]): ParsedArgs {
   const limitArg = limitIndex !== -1 ? args[limitIndex + 1] : null;
   const limit = limitArg ? Number.parseInt(limitArg, 10) : DEFAULT_LIMIT;
 
-  return { dryRun, world, dataCenter, seed, limit };
+  return { dryRun, world, dataCenter, seed, limit, skipIcons };
 }
 
 /**
@@ -113,7 +116,7 @@ function parseArgs(args: string[]): ParsedArgs {
  */
 async function main() {
   const args = process.argv.slice(2);
-  const { dryRun, world, dataCenter, seed: seedArg, limit } = parseArgs(args);
+  const { dryRun, world, dataCenter, seed: seedArg, limit, skipIcons } = parseArgs(args);
 
   // 環境変数チェック
   const databaseUrl = process.env['DATABASE_URL'];
@@ -237,6 +240,15 @@ async function main() {
     console.log(`Characters processed: ${stats.processedCharacters}/${limit}`);
     console.log(`Characters skipped: ${stats.skippedCharacters}`);
     console.log(`Errors: ${stats.errors}`);
+
+    // ポストプロセス: 新アイテムのアイコン URL 取得
+    if (!skipIcons) {
+      console.log('\n[PostProcess] Fetching icons for new items...');
+      const iconResult = await fetchMissingIcons({ db, httpClient });
+      console.log(
+        `[PostProcess] ${iconResult.fetched}/${iconResult.total} icons fetched (${iconResult.failed} failed)`,
+      );
+    }
   } finally {
     // db.$client で postgres クライアントにアクセス可能
     await db.$client.end();

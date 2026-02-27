@@ -35,6 +35,7 @@ export interface ExtractedItem {
   id: string;
   name: string;
   slotId: number;
+  iconUrl: string | null;
 }
 
 /**

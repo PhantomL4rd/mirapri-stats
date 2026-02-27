@@ -15,8 +15,8 @@ describe('runSync', () => {
 
     mockAggregator = {
       extractUniqueItems: vi.fn().mockResolvedValue([
-        { id: 'item1', name: 'Name1', slotId: 1 },
-        { id: 'item2', name: 'Name2', slotId: 2 },
+        { id: 'item1', name: 'Name1', slotId: 1, iconUrl: null },
+        { id: 'item2', name: 'Name2', slotId: 2, iconUrl: null },
       ]),
       aggregateUsage: vi.fn().mockResolvedValue([
         { slotId: 1, itemId: 'item1', usageCount: 100 },

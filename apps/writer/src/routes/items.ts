@@ -1,12 +1,13 @@
 import { items } from '@mirapri/shared/d1-schema';
+import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
 import { Hono } from 'hono';
 import type { Env, ItemsRequest, ItemsResponse } from '../types.js';
 
 export const itemsRoute = new Hono<{ Bindings: Env }>();
 
-// D1 bind variable limit is 100, items has 3 columns
-const BATCH_SIZE = 30;
+// D1 bind variable limit is 100, items has 4 columns
+const BATCH_SIZE = 25;
 
 function chunk<T>(array: T[], size: number): T[][] {
   const chunks: T[][] = [];
@@ -24,7 +25,8 @@ function getChanges(result: unknown, fallback: number): number {
 
 /**
  * POST /api/items
- * アイテムマスタを一括挿入（ON CONFLICT DO NOTHING）
+ * アイテムマスタを一括挿入
+ * icon_url が新しい値を持つ場合のみ更新（ON CONFLICT DO UPDATE）
  */
 itemsRoute.post('/', async (c) => {
   const body = await c.req.json<ItemsRequest>();
@@ -51,6 +53,7 @@ itemsRoute.post('/', async (c) => {
     id: item.id,
     name: item.name,
     slotId: item.slotId,
+    iconUrl: item.iconUrl ?? null,
   }));
 
   // D1制限回避のためバッチ分割し、db.batch()で一括実行
@@ -58,7 +61,17 @@ itemsRoute.post('/', async (c) => {
   if (batches.length === 0) {
     return c.json({ success: true, inserted: 0, skipped: 0 } satisfies ItemsResponse);
   }
-  const statements = batches.map((batch) => db.insert(items).values(batch).onConflictDoNothing());
+  const statements = batches.map((batch) =>
+    db
+      .insert(items)
+      .values(batch)
+      .onConflictDoUpdate({
+        target: items.id,
+        set: {
+          iconUrl: sql`COALESCE(excluded.icon_url, ${items.iconUrl})`,
+        },
+      }),
+  );
   const [first, ...rest] = statements;
   const results = await db.batch([first!, ...rest]);
   const totalInserted = results.reduce(

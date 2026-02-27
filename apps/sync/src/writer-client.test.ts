@@ -90,9 +90,9 @@ describe('WriterClient', () => {
       mockFetch.mockResolvedValue(createMockResponse(200, { inserted: 3, skipped: 0 }));
 
       const items: ExtractedItem[] = [
-        { id: 'item1', name: 'Name1', slotId: 1 },
-        { id: 'item2', name: 'Name2', slotId: 2 },
-        { id: 'item3', name: 'Name3', slotId: 3 },
+        { id: 'item1', name: 'Name1', slotId: 1, iconUrl: null },
+        { id: 'item2', name: 'Name2', slotId: 2, iconUrl: null },
+        { id: 'item3', name: 'Name3', slotId: 3, iconUrl: null },
       ];
 
       const result = await client.postItems(items);
@@ -119,6 +119,7 @@ describe('WriterClient', () => {
         id: `item${i}`,
         name: `Name${i}`,
         slotId: 1,
+        iconUrl: null,
       }));
 
       const result = await client.postItems(items);
@@ -142,6 +143,7 @@ describe('WriterClient', () => {
         id: `item${i}`,
         name: `Name${i}`,
         slotId: 1,
+        iconUrl: null,
       }));
 
       await customClient.postItems(items);
@@ -286,7 +288,7 @@ describe('WriterClient', () => {
         .mockResolvedValueOnce(createMockResponse(500, { error: 'Server Error' }, false))
         .mockResolvedValueOnce(createMockResponse(200, { inserted: 1, skipped: 0 }));
 
-      const items: ExtractedItem[] = [{ id: 'item1', name: 'Name1', slotId: 1 }];
+      const items: ExtractedItem[] = [{ id: 'item1', name: 'Name1', slotId: 1, iconUrl: null }];
 
       const result = await clientWithNoDelay.postItems(items);
 
@@ -297,7 +299,7 @@ describe('WriterClient', () => {
     it('401エラーは即座にエラーを投げる（リトライしない）', async () => {
       mockFetch.mockResolvedValue(createMockResponse(401, { error: 'Unauthorized' }, false));
 
-      const items: ExtractedItem[] = [{ id: 'item1', name: 'Name1', slotId: 1 }];
+      const items: ExtractedItem[] = [{ id: 'item1', name: 'Name1', slotId: 1, iconUrl: null }];
 
       await expect(client.postItems(items)).rejects.toThrow('Unauthorized: Invalid AUTH_TOKEN');
       expect(mockFetch).toHaveBeenCalledTimes(1);
@@ -312,7 +314,7 @@ describe('WriterClient', () => {
 
       mockFetch.mockResolvedValue(createMockResponse(500, { error: 'Server Error' }, false));
 
-      const items: ExtractedItem[] = [{ id: 'item1', name: 'Name1', slotId: 1 }];
+      const items: ExtractedItem[] = [{ id: 'item1', name: 'Name1', slotId: 1, iconUrl: null }];
 
       await expect(clientWith2Retries.postItems(items)).rejects.toThrow('Server error: 500');
       expect(mockFetch).toHaveBeenCalledTimes(2);
@@ -325,7 +327,7 @@ describe('WriterClient', () => {
         createMockResponse(400, { error: 'Invalid request body' }, false),
       );
 
-      const items: ExtractedItem[] = [{ id: 'item1', name: 'Name1', slotId: 1 }];
+      const items: ExtractedItem[] = [{ id: 'item1', name: 'Name1', slotId: 1, iconUrl: null }];
 
       await expect(client.postItems(items)).rejects.toThrow('Failed to post items: 400');
     });
@@ -435,7 +437,9 @@ describe('WriterClient', () => {
 
       mockFetch.mockResolvedValue(createMockResponse(200, { inserted: 1, skipped: 0 }));
 
-      await clientWithCfAccess.postItems([{ id: 'item1', name: 'Name1', slotId: 1 }]);
+      await clientWithCfAccess.postItems([
+        { id: 'item1', name: 'Name1', slotId: 1, iconUrl: null },
+      ]);
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://api.example.com/api/items',
@@ -460,7 +464,7 @@ describe('WriterClient', () => {
 
       mockFetch.mockResolvedValue(createMockResponse(403, { error: 'Forbidden' }, false));
 
-      const items: ExtractedItem[] = [{ id: 'item1', name: 'Name1', slotId: 1 }];
+      const items: ExtractedItem[] = [{ id: 'item1', name: 'Name1', slotId: 1, iconUrl: null }];
 
       await expect(clientWithCfAccess.postItems(items)).rejects.toThrow(
         'Forbidden: Invalid Cloudflare Access credentials',

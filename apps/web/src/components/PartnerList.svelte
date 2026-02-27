@@ -6,6 +6,7 @@
     itemName: string;
     slotId: number;
     pairCount: number;
+    iconUrl: string | null;
   }
 
   interface Props {
@@ -29,6 +30,9 @@
 {#snippet itemRow(item: PartnerItem, isCard: boolean)}
   {#if isCard}
     <li class="flex items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-sm">
+      {#if item.iconUrl}
+        <img src={item.iconUrl} alt="" width="32" height="32" class="rounded" loading="lazy" />
+      {/if}
       <a
         href={`/item/${item.itemId}`}
         class="flex-1 font-medium text-card-foreground hover:underline inline-flex items-center gap-1"
@@ -46,6 +50,9 @@
     </li>
   {:else}
     <li class="flex items-center gap-3 border-b border-border last:border-b-0 p-3">
+      {#if item.iconUrl}
+        <img src={item.iconUrl} alt="" width="32" height="32" class="rounded" loading="lazy" />
+      {/if}
       <a
         href={`/item/${item.itemId}`}
         class="flex-1 font-medium text-card-foreground hover:underline inline-flex items-center gap-1"

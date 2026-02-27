@@ -14,6 +14,7 @@ export interface ItemsRequest {
     id: string;
     name: string;
     slotId: number;
+    iconUrl?: string | null;
   }>;
 }
 
