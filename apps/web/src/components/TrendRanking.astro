@@ -1,11 +1,13 @@
 ---
 import type { TrendItem } from '../lib/queries';
+import { versionedHref } from '../lib/utils';
 
 interface Props {
   items: TrendItem[];
+  version?: string;
 }
 
-const { items } = Astro.props;
+const { items, version } = Astro.props;
 
 /**
  * Lodestone アイテムURL を生成
@@ -43,7 +45,7 @@ function formatRankDelta(rankDelta: number | null): string | null {
             )}
             <div class="flex-1 min-w-0">
               <a
-                href={`/item/${item.itemId}`}
+                href={versionedHref(`/item/${item.itemId}`, version)}
                 class="block font-medium text-card-foreground hover:underline truncate"
               >
                 {item.itemName}

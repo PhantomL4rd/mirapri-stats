@@ -7,6 +7,16 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * パスに version クエリパラメータを付与する
+ * 過去データ閲覧時にリンク間で version を保持するために使用
+ */
+export function versionedHref(path: string, version?: string): string {
+  if (!version) return path;
+  const sep = path.includes('?') ? '&' : '?';
+  return `${path}${sep}version=${version}`;
+}
+
+/**
  * 次回データ更新予定日を計算（毎月第1水曜日の次の土曜日）
  *
  * @param dataTo 現在の統計期間の終了日

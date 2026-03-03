@@ -46,8 +46,8 @@ try {
       </p>
     </div>
 
-    <SlotTabs currentSlot={currentSlot} basePath="/ranking" client:load />
+    <SlotTabs currentSlot={currentSlot} basePath="/ranking" version={currentVersion} client:load />
 
-    <VersatilityRanking items={items} />
+    <VersatilityRanking items={items} version={currentVersion} />
   </div>
 </BaseLayout>

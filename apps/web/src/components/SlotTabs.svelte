@@ -1,12 +1,13 @@
 <script lang="ts">
-  import { cn } from '../lib/utils';
+  import { cn, versionedHref } from '../lib/utils';
 
   interface Props {
     currentSlot: string;
     basePath?: string;
+    version?: string;
   }
 
-  let { currentSlot, basePath = '/' }: Props = $props();
+  let { currentSlot, basePath = '/', version }: Props = $props();
 
   const slots = [
     { slug: 'body', name: '胴' },
@@ -20,7 +21,7 @@
 <div class="flex gap-1 border-b border-border">
   {#each slots as slot}
     <a
-      href={`${basePath}?slot=${slot.slug}`}
+      href={versionedHref(`${basePath}?slot=${slot.slug}`, version)}
       class={cn(
         'px-4 py-2 text-sm font-medium transition-colors',
         currentSlot === slot.slug

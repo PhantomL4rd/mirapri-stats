@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Search, X } from 'lucide-svelte';
-  import { cn } from '../lib/utils';
+  import { cn, versionedHref } from '../lib/utils';
 
   interface SearchResult {
     itemId: string;
@@ -98,7 +98,7 @@
   }
 
   function selectItem(item: SearchResult) {
-    window.location.href = `/item/${item.itemId}`;
+    window.location.href = versionedHref(`/item/${item.itemId}`, currentVersion);
   }
 </script>
 
