@@ -369,6 +369,228 @@ export async function searchItems(
 }
 
 /**
+ * トレンドアイテム
+ */
+export interface TrendItem {
+  itemId: string;
+  itemName: string;
+  slotId: number;
+  iconUrl: string | null;
+  usageCountNew: number;
+  usageCountPrev: number;
+  usageDelta: number;
+  rankNew: number;
+  rankPrev: number | null;
+  rankDelta: number | null;
+}
+
+/**
+ * 急上昇アイテムを取得（usage_delta DESC）
+ *
+ * @param db D1Database
+ * @param slotId フィルタするスロットID（1-5）、nullで全スロット
+ * @param limit 取得件数
+ * @param version バージョン（省略時は active_version）
+ */
+export async function getTrendingUp(
+  db: D1Database,
+  slotId: number | null = 2,
+  limit = 10,
+  version?: string,
+): Promise<TrendItem[]> {
+  const v = version ?? (await getActiveVersion(db));
+
+  const slotCondition = slotId !== null ? 'AND t.slot_id = ?' : '';
+  const bindings: (string | number)[] = [v];
+  if (slotId !== null) bindings.push(slotId);
+  bindings.push(limit);
+
+  const query = `
+    SELECT
+      t.item_id,
+      i.name AS item_name,
+      t.slot_id,
+      i.icon_url,
+      t.usage_count_new,
+      t.usage_count_prev,
+      t.usage_delta,
+      t.rank_new,
+      t.rank_prev,
+      t.rank_delta
+    FROM usage_trends t
+    INNER JOIN items i ON t.item_id = i.id
+    WHERE t.new_version = ?
+      ${slotCondition}
+      AND t.usage_delta > 0
+    ORDER BY t.usage_delta DESC
+    LIMIT ?
+  `;
+
+  const result = await db
+    .prepare(query)
+    .bind(...bindings)
+    .all<{
+      item_id: string;
+      item_name: string;
+      slot_id: number;
+      icon_url: string | null;
+      usage_count_new: number;
+      usage_count_prev: number;
+      usage_delta: number;
+      rank_new: number;
+      rank_prev: number | null;
+      rank_delta: number | null;
+    }>();
+
+  return (result.results ?? []).map((row) => ({
+    itemId: row.item_id,
+    itemName: row.item_name,
+    slotId: row.slot_id,
+    iconUrl: row.icon_url ?? null,
+    usageCountNew: row.usage_count_new,
+    usageCountPrev: row.usage_count_prev,
+    usageDelta: row.usage_delta,
+    rankNew: row.rank_new,
+    rankPrev: row.rank_prev,
+    rankDelta: row.rank_delta,
+  }));
+}
+
+/**
+ * 下降トレンドアイテムを取得（usage_delta ASC）
+ */
+export async function getTrendingDown(
+  db: D1Database,
+  slotId: number | null = 2,
+  limit = 10,
+  version?: string,
+): Promise<TrendItem[]> {
+  const v = version ?? (await getActiveVersion(db));
+
+  const slotCondition = slotId !== null ? 'AND t.slot_id = ?' : '';
+  const bindings: (string | number)[] = [v];
+  if (slotId !== null) bindings.push(slotId);
+  bindings.push(limit);
+
+  const query = `
+    SELECT
+      t.item_id,
+      i.name AS item_name,
+      t.slot_id,
+      i.icon_url,
+      t.usage_count_new,
+      t.usage_count_prev,
+      t.usage_delta,
+      t.rank_new,
+      t.rank_prev,
+      t.rank_delta
+    FROM usage_trends t
+    INNER JOIN items i ON t.item_id = i.id
+    WHERE t.new_version = ?
+      ${slotCondition}
+      AND t.usage_delta < 0
+    ORDER BY t.usage_delta ASC
+    LIMIT ?
+  `;
+
+  const result = await db
+    .prepare(query)
+    .bind(...bindings)
+    .all<{
+      item_id: string;
+      item_name: string;
+      slot_id: number;
+      icon_url: string | null;
+      usage_count_new: number;
+      usage_count_prev: number;
+      usage_delta: number;
+      rank_new: number;
+      rank_prev: number | null;
+      rank_delta: number | null;
+    }>();
+
+  return (result.results ?? []).map((row) => ({
+    itemId: row.item_id,
+    itemName: row.item_name,
+    slotId: row.slot_id,
+    iconUrl: row.icon_url ?? null,
+    usageCountNew: row.usage_count_new,
+    usageCountPrev: row.usage_count_prev,
+    usageDelta: row.usage_delta,
+    rankNew: row.rank_new,
+    rankPrev: row.rank_prev,
+    rankDelta: row.rank_delta,
+  }));
+}
+
+/**
+ * 新登場アイテムを取得（rank_prev IS NULL）
+ */
+export async function getNewArrivals(
+  db: D1Database,
+  slotId: number | null = 2,
+  limit = 10,
+  version?: string,
+): Promise<TrendItem[]> {
+  const v = version ?? (await getActiveVersion(db));
+
+  const slotCondition = slotId !== null ? 'AND t.slot_id = ?' : '';
+  const bindings: (string | number)[] = [v];
+  if (slotId !== null) bindings.push(slotId);
+  bindings.push(limit);
+
+  const query = `
+    SELECT
+      t.item_id,
+      i.name AS item_name,
+      t.slot_id,
+      i.icon_url,
+      t.usage_count_new,
+      t.usage_count_prev,
+      t.usage_delta,
+      t.rank_new,
+      t.rank_prev,
+      t.rank_delta
+    FROM usage_trends t
+    INNER JOIN items i ON t.item_id = i.id
+    WHERE t.new_version = ?
+      ${slotCondition}
+      AND t.rank_prev IS NULL
+    ORDER BY t.usage_count_new DESC
+    LIMIT ?
+  `;
+
+  const result = await db
+    .prepare(query)
+    .bind(...bindings)
+    .all<{
+      item_id: string;
+      item_name: string;
+      slot_id: number;
+      icon_url: string | null;
+      usage_count_new: number;
+      usage_count_prev: number;
+      usage_delta: number;
+      rank_new: number;
+      rank_prev: number | null;
+      rank_delta: number | null;
+    }>();
+
+  return (result.results ?? []).map((row) => ({
+    itemId: row.item_id,
+    itemName: row.item_name,
+    slotId: row.slot_id,
+    iconUrl: row.icon_url ?? null,
+    usageCountNew: row.usage_count_new,
+    usageCountPrev: row.usage_count_prev,
+    usageDelta: row.usage_delta,
+    rankNew: row.rank_new,
+    rankPrev: row.rank_prev,
+    rankDelta: row.rank_delta,
+  }));
+}
+
+/**
  * 類似アイテム（着こなしが似ているアイテム）
  */
 export interface SimilarItem {

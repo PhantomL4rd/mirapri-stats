@@ -100,6 +100,16 @@ export interface SyncCommitResponse {
   success: boolean;
   previousVersion: string;
   newVersion: string;
+  trendsComputed: number;
+  trendsWarning?: string;
+}
+
+/**
+ * POST /api/sync/backfill-trends レスポンス
+ */
+export interface BackfillTrendsResponse {
+  success: boolean;
+  computed: number;
 }
 
 /**

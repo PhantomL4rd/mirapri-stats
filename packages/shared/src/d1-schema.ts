@@ -116,3 +116,47 @@ export type SyncVersion = typeof syncVersions.$inferSelect;
 
 /** INSERT時の型 */
 export type NewSyncVersion = typeof syncVersions.$inferInsert;
+
+/**
+ * 使用数トレンドテーブル（蓄積型）
+ * バージョン間の使用数差分サマリー
+ * version rotation (cleanupOldVersions) の対象外
+ */
+export const usageTrends = sqliteTable(
+  'usage_trends',
+  {
+    /** 新バージョン識別子 */
+    newVersion: text('new_version').notNull(),
+    /** 前バージョン識別子 */
+    prevVersion: text('prev_version').notNull(),
+    /** スナップショット日時 */
+    snapshotDate: text('snapshot_date').notNull(),
+    /** 部位ID */
+    slotId: integer('slot_id').notNull(),
+    /** アイテムID */
+    itemId: text('item_id').notNull(),
+    /** 新バージョンでの使用回数 */
+    usageCountNew: integer('usage_count_new').notNull(),
+    /** 前バージョンでの使用回数 */
+    usageCountPrev: integer('usage_count_prev').notNull(),
+    /** 使用数差分 (new - prev) */
+    usageDelta: integer('usage_delta').notNull(),
+    /** 新バージョンでの順位 */
+    rankNew: integer('rank_new').notNull(),
+    /** 前バージョンでの順位（NULL = 前回未登場） */
+    rankPrev: integer('rank_prev'),
+    /** 順位変動 (prev - new、正 = 上昇、NULL = 前回未登場) */
+    rankDelta: integer('rank_delta'),
+  },
+  (table) => [
+    primaryKey({ columns: [table.newVersion, table.slotId, table.itemId] }),
+    index('idx_usage_trends_slot_delta').on(table.newVersion, table.slotId, table.usageDelta),
+    index('idx_usage_trends_item').on(table.itemId, table.snapshotDate),
+  ],
+);
+
+/** SELECT時の型 */
+export type UsageTrend = typeof usageTrends.$inferSelect;
+
+/** INSERT時の型 */
+export type NewUsageTrend = typeof usageTrends.$inferInsert;

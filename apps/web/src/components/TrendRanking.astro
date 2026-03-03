@@ -1,0 +1,99 @@
+---
+import type { TrendItem } from '../lib/queries';
+
+interface Props {
+  items: TrendItem[];
+}
+
+const { items } = Astro.props;
+
+/**
+ * Lodestone アイテムURL を生成
+ */
+function getLodestoneUrl(itemId: string): string {
+  return `https://jp.finalfantasyxiv.com/lodestone/playguide/db/item/${itemId}/`;
+}
+
+/**
+ * 使用数デルタの表示テキスト
+ */
+function formatDelta(delta: number): string {
+  return delta > 0 ? `+${delta}` : `${delta}`;
+}
+
+/**
+ * ランク変動の表示テキスト
+ */
+function formatRankDelta(rankDelta: number | null): string | null {
+  if (rankDelta === null) return null;
+  if (rankDelta > 0) return `↑${rankDelta}`;
+  if (rankDelta < 0) return `↓${Math.abs(rankDelta)}`;
+  return '→';
+}
+---
+
+<div class="space-y-2">
+  {
+    items.length === 0 ? (
+      <p class="text-center text-muted-foreground py-8">
+        トレンドデータがまだありません。次回の更新をお待ちください。
+      </p>
+    ) : (
+      <ol class="space-y-2">
+        {items.map((item, index) => (
+          <li class="flex items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-sm">
+            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground">
+              {index + 1}
+            </span>
+            {item.iconUrl && (
+              <img src={item.iconUrl} alt="" width="32" height="32" class="rounded" loading="lazy" />
+            )}
+            <div class="flex-1 min-w-0">
+              <a
+                href={`/item/${item.itemId}`}
+                class="block font-medium text-card-foreground hover:underline truncate"
+              >
+                {item.itemName}
+              </a>
+              <div class="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                {item.rankPrev === null ? (
+                  <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                    NEW
+                  </span>
+                ) : (
+                  formatRankDelta(item.rankDelta) && (
+                    <span class={
+                      item.rankDelta !== null && item.rankDelta > 0
+                        ? 'text-emerald-600 dark:text-emerald-400 font-medium'
+                        : item.rankDelta !== null && item.rankDelta < 0
+                          ? 'text-red-500 dark:text-red-400 font-medium'
+                          : 'text-muted-foreground'
+                    }>
+                      {formatRankDelta(item.rankDelta)}
+                    </span>
+                  )
+                )}
+                <span>使用数 {item.usageCountNew}</span>
+              </div>
+            </div>
+            <span class={`text-sm font-bold tabular-nums ${
+              item.usageDelta > 0
+                ? 'text-emerald-600 dark:text-emerald-400'
+                : 'text-red-500 dark:text-red-400'
+            }`}>
+              {formatDelta(item.usageDelta)}
+            </span>
+            <a
+              href={getLodestoneUrl(item.itemId)}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="eorzeadb_link text-xs text-muted-foreground hover:text-foreground"
+            >
+              Lodestone
+            </a>
+          </li>
+        ))}
+      </ol>
+    )
+  }
+</div>
