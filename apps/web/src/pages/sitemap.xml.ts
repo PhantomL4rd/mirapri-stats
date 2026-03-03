@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 
 const SITE_URL = 'https://mirapri-insight.pl4rd.com';
 
-const staticPages = ['/', '/faq', '/readme'];
+const fixedPages = ['/', '/ranking', '/faq', '/readme'];
 
 export const GET: APIRoute = async ({ locals }) => {
   const db = locals.runtime.env.DB;
@@ -12,8 +12,8 @@ export const GET: APIRoute = async ({ locals }) => {
   const itemIds = result.results?.map((r) => r.id) ?? [];
 
   const urls = [
-    // 静的ページ
-    ...staticPages.map((path) => ({
+    // パスが固定のページ
+    ...fixedPages.map((path) => ({
       loc: `${SITE_URL}${path}`,
       priority: path === '/' ? '1.0' : '0.8',
     })),

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Crown, Menu, MessageCircle, SwatchBook, X, Info, Ghost } from 'lucide-svelte';
+  import { Crown, Menu, MessageCircle, SwatchBook, X, Info } from 'lucide-svelte';
   import SearchModal from './SearchModal.svelte';
   import VersionPicker from './VersionPicker.svelte';
 
@@ -73,14 +73,6 @@
       >
         <Crown class="size-5" />
         人気ランキング
-      </a>
-      <a
-        href="/hidden-gems"
-        class="flex items-center gap-3 rounded-md px-3 py-3 text-sm hover:bg-accent transition-colors"
-        onclick={closeMenu}
-      >
-        <Ghost class="size-5" />
-        名脇役ランキング
       </a>
       <a
         href="/readme"
