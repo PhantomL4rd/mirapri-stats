@@ -2,6 +2,7 @@
   import { Crown, Menu, MessageCircle, SwatchBook, X, Info } from 'lucide-svelte';
   import SearchModal from './SearchModal.svelte';
   import VersionPicker from './VersionPicker.svelte';
+  import { versionedHref } from '../lib/utils';
 
   interface VersionInfo {
     version: string;
@@ -67,7 +68,7 @@
 
     <nav class="p-2">
       <a
-        href="/ranking"
+        href={versionedHref("/ranking", currentVersion)}
         class="flex items-center gap-3 rounded-md px-3 py-3 text-sm hover:bg-accent transition-colors"
         onclick={closeMenu}
       >

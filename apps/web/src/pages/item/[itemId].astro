@@ -5,6 +5,7 @@ import PartnerList from '../../components/PartnerList.svelte';
 import { ArrowLeft } from 'lucide-svelte';
 import { getItemInfo, getPartnerItems, getDataFreshness, getSimilarItems } from '../../lib/queries';
 import { SLOT_NAMES, getQueryVersion, getAvailableVersions } from '../../lib/db';
+import { versionedHref } from '../../lib/utils';
 
 const { itemId } = Astro.params;
 
@@ -100,13 +101,13 @@ function getLodestoneUrl(id: string): string {
                 <summary class="flex cursor-pointer items-center justify-between p-3 font-medium text-card-foreground hover:bg-muted/50">
                   <span>{slotLabel}</span>
                 </summary>
-                <PartnerList items={items} variant="bordered" client:load />
+                <PartnerList items={items} variant="bordered" version={currentVersion} client:load />
               </details>
             );
           })
         ) : (
           // 頭・手・足: フラットリスト（単一部位とのペアのみ）
-          <PartnerList items={partnerItems} variant="card" client:load />
+          <PartnerList items={partnerItems} variant="card" version={currentVersion} client:load />
         )
       }
     </div>
@@ -121,7 +122,7 @@ function getLodestoneUrl(id: string): string {
                 <img src={item.iconUrl} alt="" width="32" height="32" class="rounded" loading="lazy" />
               )}
               <a
-                href={`/item/${item.itemId}`}
+                href={versionedHref(`/item/${item.itemId}`, currentVersion)}
                 class="flex-1 font-medium text-card-foreground hover:underline"
               >
                 {item.itemName}
@@ -141,7 +142,7 @@ function getLodestoneUrl(id: string): string {
     )}
 
     <div class="pt-4">
-      <a href="/" class="text-sm text-muted-foreground hover:underline inline-flex items-center gap-1">
+      <a href={versionedHref("/", currentVersion)} class="text-sm text-muted-foreground hover:underline inline-flex items-center gap-1">
         <ArrowLeft class="size-4" />
         ランキングに戻る
       </a>

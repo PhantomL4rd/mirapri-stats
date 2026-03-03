@@ -4,7 +4,7 @@ import { TrendingUp } from 'lucide-svelte';
 import HeaderMenu from '../components/HeaderMenu.svelte';
 import type { VersionInfo } from '../lib/db';
 import type { DataFreshness } from '../lib/queries';
-import { getNextUpdateDate } from '../lib/utils';
+import { getNextUpdateDate, versionedHref } from '../lib/utils';
 
 interface Props {
   title?: string;
@@ -74,7 +74,7 @@ const nextUpdateDate = showFreshness ? getNextUpdateDate(freshness!.dataTo) : nu
     <header class="bg-primary text-primary-foreground mb-8">
       <div class="mx-auto max-w-4xl px-4 h-14 flex items-center justify-between">
         <div class="flex-1">
-          <a href="/" class="flex items-center gap-2 text-xl font-bold hover:opacity-80 transition-opacity">
+          <a href={versionedHref("/", currentVersion)} class="flex items-center gap-2 text-xl font-bold hover:opacity-80 transition-opacity">
             <TrendingUp class="size-6" />
             ミラプリインサイト
           </a>

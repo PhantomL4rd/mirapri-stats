@@ -1,5 +1,6 @@
 <script lang="ts">
   import { ChevronDown } from 'lucide-svelte';
+  import { versionedHref } from '../lib/utils';
 
   interface PartnerItem {
     itemId: string;
@@ -13,9 +14,10 @@
     items: PartnerItem[];
     topCount?: number;
     variant?: 'card' | 'bordered';
+    version?: string;
   }
 
-  let { items, topCount = 5, variant = 'card' }: Props = $props();
+  let { items, topCount = 5, variant = 'card', version }: Props = $props();
   let showAll = $state(false);
 
   const topItems = $derived(items.slice(0, topCount));
@@ -34,7 +36,7 @@
         <img src={item.iconUrl} alt="" width="32" height="32" class="rounded" loading="lazy" />
       {/if}
       <a
-        href={`/item/${item.itemId}`}
+        href={versionedHref(`/item/${item.itemId}`, version)}
         class="flex-1 font-medium text-card-foreground hover:underline inline-flex items-center gap-1"
       >
         {item.itemName}
@@ -54,7 +56,7 @@
         <img src={item.iconUrl} alt="" width="32" height="32" class="rounded" loading="lazy" />
       {/if}
       <a
-        href={`/item/${item.itemId}`}
+        href={versionedHref(`/item/${item.itemId}`, version)}
         class="flex-1 font-medium text-card-foreground hover:underline inline-flex items-center gap-1"
       >
         {item.itemName}

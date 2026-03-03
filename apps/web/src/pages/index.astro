@@ -44,8 +44,8 @@ try {
       </p>
     </div>
 
-    <SlotTabs currentSlot={currentSlot} client:load />
+    <SlotTabs currentSlot={currentSlot} version={currentVersion} client:load />
 
-    <TrendRanking items={trendItems} />
+    <TrendRanking items={trendItems} version={currentVersion} />
   </div>
 </BaseLayout>
