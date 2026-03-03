@@ -96,7 +96,7 @@ const nextUpdateDate = showFreshness ? getNextUpdateDate(freshness!.dataTo) : nu
           {isViewingOldData && <span class="text-amber-600 ml-1">(過去データ)</span>}
         </div>
       )}
-      {nextUpdateDate && (
+      {nextUpdateDate && !isViewingOldData && (
         <div class="mx-auto max-w-4xl px-4 pb-2 text-center text-xs text-muted-foreground">
           次回更新予定: {formatDateSlash(nextUpdateDate)} ごろ
         </div>
