@@ -116,12 +116,13 @@ describe('VersionManager', () => {
   });
 
   describe('cleanupOldVersions', () => {
-    it('5世代を超えるバージョンを削除する', async () => {
-      // sync_versions から全バージョン取得（6件: v1〜v6 - synced_at 降順）
+    it('6世代を超えるバージョンを削除する', async () => {
+      // sync_versions から全バージョン取得（7件: v1〜v7 - synced_at 降順）
       const mockAll = vi
         .fn()
         .mockResolvedValue([
-          { version: 'v6-newest' },
+          { version: 'v7-newest' },
+          { version: 'v6' },
           { version: 'v5' },
           { version: 'v4' },
           { version: 'v3' },
@@ -148,10 +149,11 @@ describe('VersionManager', () => {
       expect(mockDelete).toHaveBeenCalledTimes(3);
     });
 
-    it('5世代以内なら削除しない', async () => {
+    it('6世代以内なら削除しない', async () => {
       const mockAll = vi
         .fn()
         .mockResolvedValue([
+          { version: 'v6' },
           { version: 'v5' },
           { version: 'v4' },
           { version: 'v3' },

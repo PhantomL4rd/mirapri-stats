@@ -3,7 +3,7 @@ import { desc, eq, notInArray } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 
 const DEFAULT_VERSION = '0';
-const VERSIONS_TO_KEEP = 5;
+const VERSIONS_TO_KEEP = 6;
 
 /**
  * commitSync に渡す freshness 情報
@@ -29,7 +29,7 @@ export interface VersionManager {
   /** sync を中断し、部分データを削除 */
   abortSync(version: string): Promise<void>;
 
-  /** 保持対象外の古いバージョンを削除（3世代保持） */
+  /** 保持対象外の古いバージョンを削除（6世代保持） */
   cleanupOldVersions(): Promise<void>;
 }
 
