@@ -33,6 +33,10 @@ try {
 } catch (e) {
   console.error('D1 query error:', e);
 }
+
+// 最新バージョン閲覧時はURLにバージョンを含めない
+const isActiveVersion = versions.find(v => v.version === currentVersion)?.isActive ?? true;
+const linkVersion = isActiveVersion ? undefined : currentVersion;
 ---
 
 <BaseLayout title={`人気ランキング | ミラプリインサイト`} versions={versions} currentVersion={currentVersion} freshness={freshness}>
@@ -46,8 +50,8 @@ try {
       </p>
     </div>
 
-    <SlotTabs currentSlot={currentSlot} basePath="/ranking" version={currentVersion} client:load />
+    <SlotTabs currentSlot={currentSlot} basePath="/ranking" version={linkVersion} client:load />
 
-    <VersatilityRanking items={items} version={currentVersion} />
+    <VersatilityRanking items={items} version={linkVersion} />
   </div>
 </BaseLayout>

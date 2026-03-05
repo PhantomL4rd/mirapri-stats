@@ -36,6 +36,10 @@ const [partnerItems, freshness, similarItems] = await Promise.all([
   getSimilarItems(db, itemId, itemInfo.slotId, 3, currentVersion),
 ]);
 
+// 最新バージョン閲覧時はURLにバージョンを含めない
+const isActiveVersion = versions.find(v => v.version === currentVersion)?.isActive ?? true;
+const linkVersion = isActiveVersion ? undefined : currentVersion;
+
 const slotName = SLOT_NAMES[itemInfo.slotId] ?? '装備';
 
 // 部位ごとにグループ化
@@ -101,13 +105,13 @@ function getLodestoneUrl(id: string): string {
                 <summary class="flex cursor-pointer items-center justify-between p-3 font-medium text-card-foreground hover:bg-muted/50">
                   <span>{slotLabel}</span>
                 </summary>
-                <PartnerList items={items} variant="bordered" version={currentVersion} client:load />
+                <PartnerList items={items} variant="bordered" version={linkVersion} client:load />
               </details>
             );
           })
         ) : (
           // 頭・手・足: フラットリスト（単一部位とのペアのみ）
-          <PartnerList items={partnerItems} variant="card" version={currentVersion} client:load />
+          <PartnerList items={partnerItems} variant="card" version={linkVersion} client:load />
         )
       }
     </div>
@@ -122,7 +126,7 @@ function getLodestoneUrl(id: string): string {
                 <img src={item.iconUrl} alt="" width="32" height="32" class="rounded" loading="lazy" />
               )}
               <a
-                href={versionedHref(`/item/${item.itemId}`, currentVersion)}
+                href={versionedHref(`/item/${item.itemId}`, linkVersion)}
                 class="flex-1 font-medium text-card-foreground hover:underline"
               >
                 {item.itemName}
@@ -142,7 +146,7 @@ function getLodestoneUrl(id: string): string {
     )}
 
     <div class="pt-4">
-      <a href={versionedHref("/", currentVersion)} class="text-sm text-muted-foreground hover:underline inline-flex items-center gap-1">
+      <a href={versionedHref("/", linkVersion)} class="text-sm text-muted-foreground hover:underline inline-flex items-center gap-1">
         <ArrowLeft class="size-4" />
         ランキングに戻る
       </a>

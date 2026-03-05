@@ -30,9 +30,12 @@
   }
 
   const hasMultipleVersions = $derived(versions.length > 1);
+  // 最新バージョン閲覧時はURLにバージョンを含めない
+  const activeVersion = $derived(versions.find(v => v.isActive)?.version);
+  const linkVersion = $derived(currentVersion === activeVersion ? undefined : currentVersion);
 </script>
 
-<SearchModal {currentVersion} />
+<SearchModal currentVersion={linkVersion} />
 
 {#if hasMultipleVersions}
   <VersionPicker {versions} {currentVersion} />
@@ -68,7 +71,7 @@
 
     <nav class="p-2">
       <a
-        href={versionedHref("/ranking", currentVersion)}
+        href={versionedHref("/ranking", linkVersion)}
         class="flex items-center gap-3 rounded-md px-3 py-3 text-sm hover:bg-accent transition-colors"
         onclick={closeMenu}
       >

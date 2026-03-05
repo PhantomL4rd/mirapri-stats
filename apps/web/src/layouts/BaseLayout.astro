@@ -34,6 +34,8 @@ function formatDateSlash(dateStr: string | null): string {
 const showFreshness = freshness?.dataFrom && freshness?.dataTo;
 const isViewingOldData = currentVersion && versions.length > 0 && !versions.find((v: VersionInfo) => v.version === currentVersion)?.isActive;
 const nextUpdateDate = showFreshness ? getNextUpdateDate(freshness!.dataTo) : null;
+// 最新バージョン閲覧時はURLにバージョンを含めない
+const linkVersion = isViewingOldData ? currentVersion : undefined;
 ---
 
 <!doctype html>
@@ -74,7 +76,7 @@ const nextUpdateDate = showFreshness ? getNextUpdateDate(freshness!.dataTo) : nu
     <header class="bg-primary text-primary-foreground mb-8">
       <div class="mx-auto max-w-4xl px-4 h-14 flex items-center justify-between">
         <div class="flex-1">
-          <a href={versionedHref("/", currentVersion)} class="flex items-center gap-2 text-xl font-bold hover:opacity-80 transition-opacity">
+          <a href={versionedHref("/", linkVersion)} class="flex items-center gap-2 text-xl font-bold hover:opacity-80 transition-opacity">
             <TrendingUp class="size-6" />
             ミラプリインサイト
           </a>
