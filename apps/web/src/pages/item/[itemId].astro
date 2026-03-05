@@ -26,6 +26,14 @@ const [versions, currentVersion, itemInfo] = await Promise.all([
   getItemInfo(db, itemId),
 ]);
 
+// 最新バージョンがURLに明示されている場合、バージョンなしURLにリダイレクト
+const isActiveVersion = versions.find(v => v.version === currentVersion)?.isActive ?? true;
+if (versionParam && isActiveVersion) {
+  const redirectUrl = new URL(url);
+  redirectUrl.searchParams.delete('version');
+  return Astro.redirect(redirectUrl.pathname + redirectUrl.search);
+}
+
 if (!itemInfo) {
   return Astro.redirect('/');
 }
@@ -36,8 +44,7 @@ const [partnerItems, freshness, similarItems] = await Promise.all([
   getSimilarItems(db, itemId, itemInfo.slotId, 3, currentVersion),
 ]);
 
-// 最新バージョン閲覧時はURLにバージョンを含めない
-const isActiveVersion = versions.find(v => v.version === currentVersion)?.isActive ?? true;
+// 最新バージョン閲覧時はURLにバージョンを含めない（isActiveVersion はリダイレクト判定で計算済み）
 const linkVersion = isActiveVersion ? undefined : currentVersion;
 
 const slotName = SLOT_NAMES[itemInfo.slotId] ?? '装備';

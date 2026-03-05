@@ -25,6 +25,14 @@ try {
   versions = await getAvailableVersions(db);
   currentVersion = await getQueryVersion(db, versionParam);
 
+  // 最新バージョンがURLに明示されている場合、バージョンなしURLにリダイレクト
+  const isActiveVersion = versions.find(v => v.version === currentVersion)?.isActive ?? true;
+  if (versionParam && isActiveVersion) {
+    const redirectUrl = new URL(url);
+    redirectUrl.searchParams.delete('version');
+    return Astro.redirect(redirectUrl.pathname + redirectUrl.search);
+  }
+
   // 指定バージョンでデータ取得
   [items, freshness] = await Promise.all([
     getVersatilityRanking(db, slotId, 10, currentVersion),
