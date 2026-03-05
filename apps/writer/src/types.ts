@@ -105,14 +105,6 @@ export interface SyncCommitResponse {
 }
 
 /**
- * POST /api/sync/backfill-trends レスポンス
- */
-export interface BackfillTrendsResponse {
-  success: boolean;
-  computed: number;
-}
-
-/**
  * POST /api/sync/abort リクエスト
  */
 export interface SyncAbortRequest {

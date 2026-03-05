@@ -2,7 +2,6 @@ import { drizzle } from 'drizzle-orm/d1';
 import { Hono } from 'hono';
 import { createTrendCalculator } from '../trend-calculator.js';
 import type {
-  BackfillTrendsResponse,
   Env,
   SyncAbortRequest,
   SyncAbortResponse,
@@ -76,24 +75,6 @@ syncRoute.post('/commit', async (c) => {
     newVersion: body.version,
     trendsComputed,
     ...(trendsWarning ? { trendsWarning } : {}),
-  };
-
-  return c.json(response);
-});
-
-/**
- * POST /api/sync/backfill-trends
- * 既存バージョンペアのトレンドデータを一括計算（冪等）
- */
-syncRoute.post('/backfill-trends', async (c) => {
-  const db = drizzle(c.env.DB);
-  const tc = createTrendCalculator({ db });
-
-  const computed = await tc.backfillMissingTrends();
-
-  const response: BackfillTrendsResponse = {
-    success: true,
-    computed,
   };
 
   return c.json(response);

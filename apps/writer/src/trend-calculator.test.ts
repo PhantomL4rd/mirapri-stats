@@ -286,37 +286,4 @@ describe('TrendCalculator', () => {
       expect(count).toBe(0);
     });
   });
-
-  describe('backfillMissingTrends', () => {
-    it('既存ペアはスキップし、未登録ペアのみ計算する', async () => {
-      const insertedRows: NewUsageTrend[] = [];
-
-      // backfill は最初に sync_versions 全件取得
-      // その後、各ペアについて computeAndStoreTrends を呼ぶ
-      const mockSelect = createSequentialSelectMock([
-        // 1. backfill: sync_versions 全件（昇順）
-        {
-          all: [{ version: 'v1' }, { version: 'v2' }, { version: 'v3' }],
-        },
-        // 2. computeAndStoreTrends(v2, v1): hasTrendsForVersion → 既に存在
-        { get: { newVersion: 'v2' } },
-        // 3. computeAndStoreTrends(v3, v2): hasTrendsForVersion → 未登録
-        { get: undefined },
-        // 4. getSnapshotDate
-        { get: { dataTo: '2026-03-01T00:00:00Z' } },
-        // 5. new usage (v3)
-        { all: [{ slotId: 2, itemId: 'item-a', usageCount: 120 }] },
-        // 6. prev usage (v2)
-        { all: [{ slotId: 2, itemId: 'item-a', usageCount: 100 }] },
-      ]);
-
-      const db = createBatchMockDb(mockSelect, insertedRows);
-
-      const tc = createTrendCalculator({ db });
-      const total = await tc.backfillMissingTrends();
-
-      // v2→v1 はスキップ、v3→v2 のみ計算 = 1件
-      expect(total).toBe(1);
-    });
-  });
 });

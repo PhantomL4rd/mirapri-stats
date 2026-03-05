@@ -1,5 +1,5 @@
 import { syncVersions, usage, usageTrends } from '@mirapri/shared/d1-schema';
-import { asc, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 
 // D1 bind variable limit is 100, usage_trends has 12 columns
@@ -16,8 +16,6 @@ function chunk<T>(array: T[], size: number): T[][] {
 export interface TrendCalculator {
   /** 指定2バージョン間の差分を計算・保存。INSERT した行数を返す */
   computeAndStoreTrends(newVersion: string, prevVersion: string): Promise<number>;
-  /** sync_versions の全連続ペアを走査し、未登録のペアを一括計算 */
-  backfillMissingTrends(): Promise<number>;
 }
 
 export interface TrendCalculatorDependencies {
@@ -179,31 +177,6 @@ export function createTrendCalculator(deps: TrendCalculatorDependencies): TrendC
       }
 
       return trendRows.length;
-    },
-
-    async backfillMissingTrends(): Promise<number> {
-      // sync_versions を synced_at 昇順で全件取得
-      const allVersions = await db
-        .select({ version: syncVersions.version })
-        .from(syncVersions)
-        .orderBy(asc(syncVersions.syncedAt))
-        .all();
-
-      if (allVersions.length < 2) return 0;
-
-      let totalComputed = 0;
-
-      // 連続するバージョンペアを走査
-      for (let i = 1; i < allVersions.length; i++) {
-        const prev = allVersions[i - 1];
-        const curr = allVersions[i];
-        if (!prev || !curr) continue;
-
-        const count = await this.computeAndStoreTrends(curr.version, prev.version);
-        totalComputed += count;
-      }
-
-      return totalComputed;
     },
   };
 }
