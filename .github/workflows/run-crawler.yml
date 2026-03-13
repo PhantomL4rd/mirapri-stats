@@ -16,22 +16,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check if first Wednesday of month
+        id: check-week
         if: github.event_name == 'schedule'
         run: |
           DAY=$(date -u +%d)
           if [ "$DAY" -gt 7 ]; then
             echo "Not the first week of the month (day=$DAY), skipping."
-            exit 1
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          else
+            echo "should_run=true" >> $GITHUB_OUTPUT
           fi
 
       - uses: actions/checkout@v4
+        if: github.event_name != 'schedule' || steps.check-week.outputs.should_run == 'true'
 
       - name: Install flyctl
+        if: github.event_name != 'schedule' || steps.check-week.outputs.should_run == 'true'
         uses: superfly/flyctl-actions/setup-flyctl@master
         with:
           version: latest
 
       - name: Build and push image
+        if: github.event_name != 'schedule' || steps.check-week.outputs.should_run == 'true'
         id: build
         run: |
           OUTPUT=$(flyctl deploy --build-only --push \
@@ -51,6 +57,7 @@ jobs:
           sleep 30
 
       - name: Run crawler for Gaia
+        if: github.event_name != 'schedule' || steps.check-week.outputs.should_run == 'true'
         env:
           IMAGE_REF: ${{ steps.build.outputs.ref }}
         run: |
@@ -87,6 +94,7 @@ jobs:
             }"
 
       - name: Run crawler for Mana
+        if: github.event_name != 'schedule' || steps.check-week.outputs.should_run == 'true'
         env:
           IMAGE_REF: ${{ steps.build.outputs.ref }}
         run: |
@@ -123,6 +131,7 @@ jobs:
             }"
 
       - name: Run crawler for Elemental
+        if: github.event_name != 'schedule' || steps.check-week.outputs.should_run == 'true'
         env:
           IMAGE_REF: ${{ steps.build.outputs.ref }}
         run: |
@@ -159,6 +168,7 @@ jobs:
             }"
 
       - name: Run crawler for Meteor
+        if: github.event_name != 'schedule' || steps.check-week.outputs.should_run == 'true'
         env:
           IMAGE_REF: ${{ steps.build.outputs.ref }}
         run: |
