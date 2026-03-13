@@ -1,26 +1,10 @@
 import { pairs } from '@mirapri/shared/d1-schema';
+import { bulkInsertD1, getChanges, isValidSlotId } from '@mirapri/shared/utils';
 import { drizzle } from 'drizzle-orm/d1';
 import { Hono } from 'hono';
 import type { Env, PairsRequest, PairsResponse } from '../types.js';
 
 export const pairsRoute = new Hono<{ Bindings: Env }>();
-
-// D1 bind variable limit is 100, pairs has 7 columns
-const BATCH_SIZE = 14;
-
-function chunk<T>(array: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < array.length; i += size) {
-    chunks.push(array.slice(i, i + size));
-  }
-  return chunks;
-}
-
-function getChanges(result: unknown, fallback: number): number {
-  // Drizzle ORM D1 の結果形式に対応
-  const r = result as { meta?: { changes?: number }; rowsAffected?: number };
-  return r.meta?.changes ?? r.rowsAffected ?? fallback;
-}
 
 /**
  * POST /api/pairs?version=xxx
@@ -40,14 +24,10 @@ pairsRoute.post('/', async (c) => {
   }
 
   for (const pair of body.pairs) {
-    if (typeof pair.baseSlotId !== 'number' || pair.baseSlotId < 1 || pair.baseSlotId > 5) {
+    if (typeof pair.baseSlotId !== 'number' || !isValidSlotId(pair.baseSlotId)) {
       return c.json({ error: 'baseSlotId must be between 1 and 5' }, 400);
     }
-    if (
-      typeof pair.partnerSlotId !== 'number' ||
-      pair.partnerSlotId < 1 ||
-      pair.partnerSlotId > 5
-    ) {
+    if (typeof pair.partnerSlotId !== 'number' || !isValidSlotId(pair.partnerSlotId)) {
       return c.json({ error: 'partnerSlotId must be between 1 and 5' }, 400);
     }
     if (!pair.baseItemId || typeof pair.baseItemId !== 'string') {
@@ -76,18 +56,12 @@ pairsRoute.post('/', async (c) => {
     rank: pair.rank,
   }));
 
-  // D1制限回避のためバッチ分割し、db.batch()で一括実行
-  const batches = chunk(values, BATCH_SIZE);
-  if (batches.length === 0) {
-    return c.json({ success: true, inserted: 0 } satisfies PairsResponse);
-  }
-  const statements = batches.map((batch) => db.insert(pairs).values(batch));
-  const [first, ...rest] = statements;
-  const results = await db.batch([first!, ...rest]);
-  const totalInserted = results.reduce(
-    (sum, result, i) => sum + getChanges(result, batches[i]!.length),
-    0,
-  );
+  const results = await bulkInsertD1({
+    items: values,
+    onBatch: (batch) => db.insert(pairs).values(batch),
+  });
+
+  const totalInserted = results.reduce((sum: number, result) => sum + getChanges(result, 0), 0);
 
   const response: PairsResponse = {
     success: true,

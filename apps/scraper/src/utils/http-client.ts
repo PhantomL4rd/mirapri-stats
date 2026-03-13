@@ -1,4 +1,5 @@
 import type { HTTPResult } from '@mirapri/shared';
+import { sleep } from '@mirapri/shared/utils';
 
 /**
  * デフォルトのレート制限間隔（ミリ秒）
@@ -29,13 +30,6 @@ export const DEFAULT_CONFIG: HttpClientConfig = {
  */
 export interface HttpClient {
   fetchWithRateLimit(url: string): Promise<HTTPResult>;
-}
-
-/**
- * 指定ミリ秒待機
- */
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**

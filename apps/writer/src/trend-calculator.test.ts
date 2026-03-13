@@ -38,9 +38,8 @@ function createSequentialSelectMock(steps: Array<{ get?: unknown; all?: unknown[
 }
 
 /**
- * db.batch() 対応のモック DB を作成するヘルパー
- * insert().values() でステートメントを生成しつつ行をキャプチャ、
- * batch() で一括実行を模倣する
+ * bulkInsertD1 対応のモック DB を作成するヘルパー
+ * insert().values() で行をキャプチャし、Promise を返す
  */
 function createBatchMockDb(
   mockSelect: ReturnType<typeof createSequentialSelectMock>,
@@ -48,13 +47,12 @@ function createBatchMockDb(
 ) {
   const insertValues = vi.fn((rows: unknown) => {
     if (Array.isArray(rows)) insertedRows.push(...(rows as NewUsageTrend[]));
-    return 'statement'; // db.batch() に渡されるステートメントオブジェクト
+    return Promise.resolve({ rowsAffected: Array.isArray(rows) ? rows.length : 0 });
   });
 
   return {
     select: mockSelect,
     insert: vi.fn(() => ({ values: insertValues })),
-    batch: vi.fn().mockResolvedValue([]),
   } as unknown as TrendCalculatorDependencies['db'];
 }
 
@@ -213,7 +211,7 @@ describe('TrendCalculator', () => {
       expect(b?.rankDelta).toBe(-1);
     });
 
-    it('100件でも db.batch() で一括実行される（BATCH_SIZE=8）', async () => {
+    it('100件でも bulkInsertD1 で自動チャンクされる', async () => {
       // 100 アイテム生成
       const items = Array.from({ length: 100 }, (_, i) => ({
         slotId: 2,
@@ -228,25 +226,21 @@ describe('TrendCalculator', () => {
         { all: items.map((item) => ({ ...item, usageCount: item.usageCount - 10 })) },
       ]);
 
-      const mockInsert = vi.fn(() => ({
-        values: vi.fn().mockReturnValue('statement'),
-      }));
-      const mockBatch = vi.fn().mockResolvedValue([]);
+      const mockValues = vi.fn().mockResolvedValue({ rowsAffected: 0 });
+      const mockInsert = vi.fn(() => ({ values: mockValues }));
 
       const db = {
         select: mockSelect,
         insert: mockInsert,
-        batch: mockBatch,
       } as unknown as TrendCalculatorDependencies['db'];
 
       const tc = createTrendCalculator({ db });
       const count = await tc.computeAndStoreTrends('v2', 'v1');
 
       expect(count).toBe(100);
-      // db.batch() が1回呼ばれ、ceil(100/8)=13 個のステートメントが渡される
-      expect(mockBatch).toHaveBeenCalledTimes(1);
-      const batchArg = mockBatch.mock.calls[0]?.[0] as unknown[];
-      expect(batchArg.length).toBe(13);
+      // bulkInsertD1 がカラム数から自動計算したチャンクサイズで分割
+      // usage_trends は 11 カラム → floor(100/11)=9 件/チャンク → ceil(100/9)=12 回
+      expect(mockValues.mock.calls.length).toBe(12);
     });
 
     it('data_to が null の場合はフォールバック日時を使用する', async () => {
@@ -277,7 +271,6 @@ describe('TrendCalculator', () => {
       const db = {
         select: mockSelect,
         insert: vi.fn(),
-        batch: vi.fn(),
       } as unknown as TrendCalculatorDependencies['db'];
 
       const tc = createTrendCalculator({ db });

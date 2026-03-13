@@ -1,17 +1,7 @@
 import { syncVersions, usage, usageTrends } from '@mirapri/shared/d1-schema';
+import { bulkInsertD1 } from '@mirapri/shared/utils';
 import { eq } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
-
-// D1 bind variable limit is 100, usage_trends has 12 columns
-const BATCH_SIZE = 8;
-
-function chunk<T>(array: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < array.length; i += size) {
-    chunks.push(array.slice(i, i + size));
-  }
-  return chunks;
-}
 
 export interface TrendCalculator {
   /** 指定2バージョン間の差分を計算・保存。INSERT した行数を返す */
@@ -170,10 +160,10 @@ export function createTrendCalculator(deps: TrendCalculatorDependencies): TrendC
 
       // D1制限回避のためバッチ分割し、db.batch()で一括実行
       if (trendRows.length > 0) {
-        const batches = chunk(trendRows, BATCH_SIZE);
-        const statements = batches.map((batch) => db.insert(usageTrends).values(batch));
-        const [first, ...rest] = statements;
-        await db.batch([first!, ...rest]);
+        await bulkInsertD1({
+          items: trendRows,
+          onBatch: (batch) => db.insert(usageTrends).values(batch),
+        });
       }
 
       return trendRows.length;

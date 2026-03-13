@@ -1,3 +1,4 @@
+import { chunk } from '@mirapri/shared/utils';
 import type {
   AggregatedPair,
   AggregatedUsage,
@@ -122,14 +123,6 @@ export function createWriterClient(config: WriterClientConfig): WriterClient {
     }
 
     throw lastError ?? new Error('Request failed');
-  }
-
-  function chunk<T>(array: T[], size: number): T[][] {
-    const chunks: T[][] = [];
-    for (let i = 0; i < array.length; i += size) {
-      chunks.push(array.slice(i, i + size));
-    }
-    return chunks;
   }
 
   return {

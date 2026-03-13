@@ -4,7 +4,7 @@ import PrivacyRibbon from '../../components/PrivacyRibbon.astro';
 import PartnerList from '../../components/PartnerList.svelte';
 import { ArrowLeft } from 'lucide-svelte';
 import { getItemInfo, getPartnerItems, getDataFreshness, getSimilarItems } from '../../lib/queries';
-import { SLOT_NAMES, getQueryVersion, getAvailableVersions } from '../../lib/db';
+import { SLOT_NAMES, resolveVersionContext } from '../../lib/db';
 import { versionedHref } from '../../lib/utils';
 
 const { itemId } = Astro.params;
@@ -20,15 +20,12 @@ const versionParam = url.searchParams.get('version');
 const db = Astro.locals.runtime.env.DB;
 
 // バージョン一覧を取得し、リクエストされたバージョンを検証
-const [versions, currentVersion, itemInfo] = await Promise.all([
-  getAvailableVersions(db),
-  getQueryVersion(db, versionParam),
+const [ctx, itemInfo] = await Promise.all([
+  resolveVersionContext(db, versionParam),
   getItemInfo(db, itemId),
 ]);
 
-// 最新バージョンがURLに明示されている場合、バージョンなしURLにリダイレクト
-const isActiveVersion = versions.find(v => v.version === currentVersion)?.isActive ?? true;
-if (versionParam && isActiveVersion) {
+if (ctx.shouldRedirect) {
   const redirectUrl = new URL(url);
   redirectUrl.searchParams.delete('version');
   return Astro.redirect(redirectUrl.pathname + redirectUrl.search);
@@ -38,14 +35,13 @@ if (!itemInfo) {
   return Astro.redirect('/');
 }
 
+const { versions, currentVersion, linkVersion } = ctx;
+
 const [partnerItems, freshness, similarItems] = await Promise.all([
   getPartnerItems(db, itemId, 30, currentVersion),
   getDataFreshness(db, currentVersion),
   getSimilarItems(db, itemId, itemInfo.slotId, 3, currentVersion),
 ]);
-
-// 最新バージョン閲覧時はURLにバージョンを含めない（isActiveVersion はリダイレクト判定で計算済み）
-const linkVersion = isActiveVersion ? undefined : currentVersion;
 
 const slotName = SLOT_NAMES[itemInfo.slotId] ?? '装備';
 

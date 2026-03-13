@@ -4,7 +4,7 @@ import { TrendingUp } from 'lucide-svelte';
 import HeaderMenu from '../components/HeaderMenu.svelte';
 import type { VersionInfo } from '../lib/db';
 import type { DataFreshness } from '../lib/queries';
-import { getNextUpdateDate, versionedHref } from '../lib/utils';
+import { formatDateFull, getNextUpdateDate, versionedHref } from '../lib/utils';
 
 interface Props {
   title?: string;
@@ -21,15 +21,6 @@ const {
   currentVersion = '',
   freshness,
 } = Astro.props;
-
-function formatDateSlash(dateStr: string | null): string {
-  if (!dateStr) return '';
-  const date = new Date(dateStr);
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}/${m}/${d}`;
-}
 
 const showFreshness = freshness?.dataFrom && freshness?.dataTo;
 const isViewingOldData = currentVersion && versions.length > 0 && !versions.find((v: VersionInfo) => v.version === currentVersion)?.isActive;
@@ -94,13 +85,13 @@ const linkVersion = isViewingOldData ? currentVersion : undefined;
     <footer class="border-t bg-card pt-4">
       {showFreshness && (
         <div class="mx-auto max-w-4xl px-4 pb-1 text-center text-xs text-muted-foreground">
-          統計期間: {formatDateSlash(freshness!.dataFrom)} - {formatDateSlash(freshness!.dataTo)}
+          統計期間: {formatDateFull(freshness!.dataFrom)} - {formatDateFull(freshness!.dataTo)}
           {isViewingOldData && <span class="text-amber-600 ml-1">(過去データ)</span>}
         </div>
       )}
       {nextUpdateDate && !isViewingOldData && (
         <div class="mx-auto max-w-4xl px-4 pb-2 text-center text-xs text-muted-foreground">
-          次回更新予定: {formatDateSlash(nextUpdateDate)} ごろ
+          次回更新予定: {formatDateFull(nextUpdateDate)} ごろ
         </div>
       )}
       <div class="mx-auto max-w-4xl px-4 pb-4 text-center text-xs text-muted-foreground">

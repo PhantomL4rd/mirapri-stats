@@ -17,6 +17,29 @@ export function versionedHref(path: string, version?: string): string {
 }
 
 /**
+ * 日付文字列を YYYY/MM/DD 形式にフォーマットする
+ */
+export function formatDateFull(dateStr: string | null): string {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}/${m}/${d}`;
+}
+
+/**
+ * 日付文字列を MM/DD 形式にフォーマットする
+ */
+export function formatDateShort(dateStr: string | null): string {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${m}/${d}`;
+}
+
+/**
  * 次回データ更新予定日を計算（毎月第1水曜日の次の土曜日）
  *
  * @param dataTo 現在の統計期間の終了日

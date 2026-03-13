@@ -1,4 +1,5 @@
 import type { ScraperError, ScraperResult } from '@mirapri/shared';
+import { LODESTONE_CHARACTER_URL } from './constants.js';
 import { isOptedOut, parseGlamourData } from './parsers/character-page.js';
 import type { GlamourRepository } from './repository.js';
 import type { HttpClient } from './utils/http-client.js';
@@ -11,7 +12,7 @@ const logger = createLogger('Scraper');
  * @param characterId キャラクターID
  */
 export function buildLodestoneUrl(characterId: string): string {
-  return `https://jp.finalfantasyxiv.com/lodestone/character/${characterId}/`;
+  return `${LODESTONE_CHARACTER_URL}${characterId}/`;
 }
 
 /**

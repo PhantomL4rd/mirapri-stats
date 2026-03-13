@@ -4,48 +4,39 @@ import PrivacyRibbon from '../components/PrivacyRibbon.astro';
 import SlotTabs from '../components/SlotTabs.svelte';
 import TrendRanking from '../components/TrendRanking.astro';
 import { getTrendingUp, getDataFreshness } from '../lib/queries';
-import { SLOT_IDS, getQueryVersion, getAvailableVersions } from '../lib/db';
+import { SLOT_IDS, parseSlotParam, resolveVersionContext } from '../lib/db';
 
 // クエリパラメータからスロットとバージョンを取得
 const url = new URL(Astro.request.url);
-const slotParam = url.searchParams.get('slot') ?? 'body';
+const currentSlot = parseSlotParam(url.searchParams.get('slot'));
 const versionParam = url.searchParams.get('version');
-const currentSlot = slotParam as keyof typeof SLOT_IDS;
 const slotId = SLOT_IDS[currentSlot] ?? 2;
 
 // D1からデータ取得
 const db = Astro.locals.runtime.env.DB;
 let trendItems: Awaited<ReturnType<typeof getTrendingUp>> = [];
-let versions: Awaited<ReturnType<typeof getAvailableVersions>> = [];
 let freshness: Awaited<ReturnType<typeof getDataFreshness>> = { dataFrom: null, dataTo: null };
-let currentVersion = '';
+let ctx = { versions: [] as Awaited<ReturnType<typeof import('../lib/db').getAvailableVersions>>, currentVersion: '', isActiveVersion: true, linkVersion: undefined as string | undefined, shouldRedirect: false };
 
 try {
-  versions = await getAvailableVersions(db);
-  currentVersion = await getQueryVersion(db, versionParam);
+  ctx = await resolveVersionContext(db, versionParam);
 
-  // 最新バージョンがURLに明示されている場合、バージョンなしURLにリダイレクト
-  const isActiveVersion = versions.find(v => v.version === currentVersion)?.isActive ?? true;
-  if (versionParam && isActiveVersion) {
+  if (ctx.shouldRedirect) {
     const redirectUrl = new URL(url);
     redirectUrl.searchParams.delete('version');
     return Astro.redirect(redirectUrl.pathname + redirectUrl.search);
   }
 
   [trendItems, freshness] = await Promise.all([
-    getTrendingUp(db, slotId, 10, currentVersion),
-    getDataFreshness(db, currentVersion),
+    getTrendingUp(db, slotId, 10, ctx.currentVersion),
+    getDataFreshness(db, ctx.currentVersion),
   ]);
 } catch (e) {
   console.error('D1 query error:', e);
 }
-
-// 最新バージョン閲覧時はURLにバージョンを含めない
-const isActiveVersion = versions.find(v => v.version === currentVersion)?.isActive ?? true;
-const linkVersion = isActiveVersion ? undefined : currentVersion;
 ---
 
-<BaseLayout title={`ミラプリインサイト`} versions={versions} currentVersion={currentVersion} freshness={freshness}>
+<BaseLayout title={`ミラプリインサイト`} versions={ctx.versions} currentVersion={ctx.currentVersion} freshness={freshness}>
   <PrivacyRibbon slot="ribbon" />
 
   <div class="space-y-6">
@@ -56,8 +47,8 @@ const linkVersion = isActiveVersion ? undefined : currentVersion;
       </p>
     </div>
 
-    <SlotTabs currentSlot={currentSlot} version={linkVersion} client:load />
+    <SlotTabs currentSlot={currentSlot} version={ctx.linkVersion} client:load />
 
-    <TrendRanking items={trendItems} version={linkVersion} />
+    <TrendRanking items={trendItems} version={ctx.linkVersion} />
   </div>
 </BaseLayout>

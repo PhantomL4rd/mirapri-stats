@@ -3,6 +3,7 @@
  * Lodestone検索の全組み合わせキーを生成
  */
 
+import { LODESTONE_CHARACTER_URL } from '../constants';
 import { DEFAULT_SEED, shuffleWithSeed } from './shuffle';
 
 /** データセンター定義 */
@@ -117,7 +118,7 @@ export interface SearchKeyGenerator {
  * 検索キーからURLを構築
  */
 export function buildSearchUrl(key: SearchKey, page?: number): string {
-  const baseUrl = 'https://jp.finalfantasyxiv.com/lodestone/character/';
+  const baseUrl = LODESTONE_CHARACTER_URL;
   const params = new URLSearchParams({
     q: '',
     worldname: key.worldname,

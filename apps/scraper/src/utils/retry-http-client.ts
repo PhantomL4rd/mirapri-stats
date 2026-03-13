@@ -1,3 +1,4 @@
+import { sleep } from '@mirapri/shared/utils';
 import type { HttpClient } from './http-client';
 
 /**
@@ -39,13 +40,6 @@ export const DEFAULT_RETRY_CONFIG: RetryConfig = {
   retryDelayMs: DEFAULT_RETRY_DELAY_MS,
   retryableStatusCodes: [...DEFAULT_RETRYABLE_STATUS_CODES],
 };
-
-/**
- * 指定ミリ秒待機
- */
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 /**
  * リトライ機能付きHTTPクライアントを作成

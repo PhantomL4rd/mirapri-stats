@@ -96,3 +96,44 @@ export const SLOT_IDS: Record<string, number> = {
   legs: 4,
   feet: 5,
 } as const;
+
+/**
+ * URL クエリパラメータからスロットキーを安全にパースする
+ * 不正な値の場合はデフォルト 'body' を返す
+ */
+export function parseSlotParam(param: string | null): keyof typeof SLOT_IDS {
+  const slot = param ?? 'body';
+  return slot in SLOT_IDS ? (slot as keyof typeof SLOT_IDS) : 'body';
+}
+
+/**
+ * バージョン解決結果
+ */
+export interface VersionContext {
+  versions: VersionInfo[];
+  currentVersion: string;
+  isActiveVersion: boolean;
+  /** テンプレートのリンクに使うバージョン。最新なら undefined */
+  linkVersion: string | undefined;
+  /** 最新バージョンが URL に明示されている場合 true（リダイレクトすべき） */
+  shouldRedirect: boolean;
+}
+
+/**
+ * バージョン一覧の取得・検証・リダイレクト判定をまとめて行う
+ *
+ * 3つのページ（ranking, index, item/[itemId]）で同一のパターンが
+ * 繰り返されていたため、ヘルパーとして抽出した。
+ */
+export async function resolveVersionContext(
+  db: D1Database,
+  versionParam: string | null,
+): Promise<VersionContext> {
+  const versions = await getAvailableVersions(db);
+  const currentVersion = await getQueryVersion(db, versionParam);
+  const isActiveVersion = versions.find((v) => v.version === currentVersion)?.isActive ?? true;
+  const shouldRedirect = !!(versionParam && isActiveVersion);
+  const linkVersion = isActiveVersion ? undefined : currentVersion;
+
+  return { versions, currentVersion, isActiveVersion, linkVersion, shouldRedirect };
+}

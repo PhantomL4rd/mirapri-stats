@@ -1,6 +1,6 @@
 <script lang="ts">
   import { History } from 'lucide-svelte';
-  import { cn } from '../lib/utils';
+  import { cn, formatDateShort } from '../lib/utils';
 
   interface VersionInfo {
     version: string;
@@ -27,17 +27,9 @@
     isOpen = false;
   }
 
-  function formatDateSlash(dateStr: string | null): string {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${m}/${d}`;
-  }
-
   function getLabel(v: VersionInfo): string {
     const period = v.dataFrom && v.dataTo
-      ? `${formatDateSlash(v.dataFrom)} - ${formatDateSlash(v.dataTo)}`
+      ? `${formatDateShort(v.dataFrom)} - ${formatDateShort(v.dataTo)}`
       : '期間不明';
     return v.isActive ? `${period} (最新)` : period;
   }

@@ -2,6 +2,7 @@ import { itemsCache } from '@mirapri/shared';
 import type * as schema from '@mirapri/shared/schema';
 import { eq, isNull } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import { LODESTONE_ITEM_URL } from './constants';
 import { parseItemIconUrl } from './parsers/item-page';
 import type { HttpClient } from './utils/http-client';
 
@@ -35,7 +36,7 @@ export interface IconFetchResult {
  * Lodestone 装備個別ページ URL を生成
  */
 function getItemPageUrl(itemId: string): string {
-  return `https://jp.finalfantasyxiv.com/lodestone/playguide/db/item/${itemId}/`;
+  return `${LODESTONE_ITEM_URL}${itemId}/`;
 }
 
 /**
