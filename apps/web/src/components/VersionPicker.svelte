@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Popover } from 'bits-ui';
   import { History } from 'lucide-svelte';
   import { cn, formatDateShort } from '../lib/utils';
 
@@ -17,15 +18,7 @@
 
   let { versions, currentVersion }: Props = $props();
 
-  let isOpen = $state(false);
-
-  function toggle() {
-    isOpen = !isOpen;
-  }
-
-  function close() {
-    isOpen = false;
-  }
+  let open = $state(false);
 
   function getLabel(v: VersionInfo): string {
     const period = v.dataFrom && v.dataTo
@@ -52,50 +45,48 @@
   );
 </script>
 
-<button
-  onclick={toggle}
-  class={cn(
-    "p-2 rounded-md hover:bg-primary-foreground/10 transition-colors relative",
-    isViewingOldData && "text-amber-300"
-  )}
-  aria-label="データ期間を切り替え"
-  aria-expanded={isOpen}
->
-  <History class="size-6" />
-  {#if isViewingOldData}
-    <span class="absolute -top-0.5 -right-0.5 size-2 bg-amber-400 rounded-full"></span>
-  {/if}
-</button>
+<Popover.Root bind:open>
+  <Popover.Trigger
+    class={cn(
+      "p-2 rounded-md hover:bg-primary-foreground/10 transition-colors relative",
+      isViewingOldData && "text-amber-300"
+    )}
+    aria-label="データ期間を切り替え"
+  >
+    <History class="size-6" />
+    {#if isViewingOldData}
+      <span class="absolute -top-0.5 -right-0.5 size-2 bg-amber-400 rounded-full"></span>
+    {/if}
+  </Popover.Trigger>
 
-{#if isOpen}
-  <button
-    class="fixed inset-0 z-40 bg-black/50 transition-opacity"
-    onclick={close}
-    aria-label="バージョン選択を閉じる"
-  ></button>
-
-  <div class="fixed top-14 right-4 z-50 w-56 bg-card text-card-foreground rounded-lg shadow-xl border border-border overflow-hidden">
-    <div class="p-3 border-b border-border">
-      <p class="text-sm font-medium">データ期間</p>
-      {#if isViewingOldData}
-        <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">過去データを表示中</p>
-      {/if}
-    </div>
-    <ul class="max-h-60 overflow-y-auto">
-      {#each versions as v}
-        <li>
-          <button
-            type="button"
-            class={cn(
-              'w-full px-4 py-3 text-left text-sm hover:bg-muted/50 transition-colors',
-              v.version === currentVersion && 'bg-muted font-medium'
-            )}
-            onclick={() => select(v.version)}
-          >
-            {getLabel(v)}
-          </button>
-        </li>
-      {/each}
-    </ul>
-  </div>
-{/if}
+  <Popover.Portal>
+    <Popover.Content
+      class="z-30 w-56 bg-card text-card-foreground rounded-lg shadow-xl border border-border overflow-hidden"
+      sideOffset={8}
+      align="end"
+    >
+      <div class="p-3 border-b border-border">
+        <p class="text-sm font-medium">データ期間</p>
+        {#if isViewingOldData}
+          <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">過去データを表示中</p>
+        {/if}
+      </div>
+      <ul class="max-h-60 overflow-y-auto">
+        {#each versions as v}
+          <li>
+            <button
+              type="button"
+              class={cn(
+                'w-full px-4 py-3 text-left text-sm hover:bg-muted/50 transition-colors',
+                v.version === currentVersion && 'bg-muted font-medium'
+              )}
+              onclick={() => select(v.version)}
+            >
+              {getLabel(v)}
+            </button>
+          </li>
+        {/each}
+      </ul>
+    </Popover.Content>
+  </Popover.Portal>
+</Popover.Root>
