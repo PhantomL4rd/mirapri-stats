@@ -31,9 +31,9 @@
 
 {#snippet itemRow(item: PartnerItem, isCard: boolean)}
   {#if isCard}
-    <li class="flex items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-sm">
+    <li class="flex items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-sm hover:bg-muted/30 transition-colors">
       {#if item.iconUrl}
-        <img src={item.iconUrl} alt="" width="32" height="32" class="rounded" loading="lazy" />
+        <img src={item.iconUrl} alt="" width="40" height="40" class="rounded" loading="lazy" />
       {/if}
       <a
         href={versionedHref(`/item/${item.itemId}`, version)}
@@ -51,9 +51,9 @@
       </a>
     </li>
   {:else}
-    <li class="flex items-center gap-3 border-b border-border last:border-b-0 p-3">
+    <li class="flex items-center gap-3 border-b border-border last:border-b-0 p-3 hover:bg-muted/30 transition-colors">
       {#if item.iconUrl}
-        <img src={item.iconUrl} alt="" width="32" height="32" class="rounded" loading="lazy" />
+        <img src={item.iconUrl} alt="" width="40" height="40" class="rounded" loading="lazy" />
       {/if}
       <a
         href={versionedHref(`/item/${item.itemId}`, version)}

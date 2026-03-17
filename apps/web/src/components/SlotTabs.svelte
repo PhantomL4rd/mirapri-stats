@@ -25,7 +25,7 @@
       class={cn(
         'px-4 py-2 text-sm font-medium transition-colors',
         currentSlot === slot.slug
-          ? 'border-b-2 border-foreground text-foreground'
+          ? 'border-b-2 border-accent text-foreground'
           : 'text-muted-foreground hover:text-foreground'
       )}
     >

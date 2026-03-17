@@ -90,7 +90,7 @@ function getLodestoneUrl(id: string): string {
           </a>
         </h1>
       </div>
-      <p class="mt-1 text-sm text-muted-foreground">のベストマッチ</p>
+      <p class="mt-1 text-sm text-muted-foreground text-pretty">のベストマッチ</p>
     </div>
 
     <div class="space-y-3">
@@ -126,7 +126,7 @@ function getLodestoneUrl(id: string): string {
           {similarItems.map((item) => (
             <li class="flex items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-sm">
               {item.iconUrl && (
-                <img src={item.iconUrl} alt="" width="32" height="32" class="rounded" loading="lazy" />
+                <img src={item.iconUrl} alt="" width="40" height="40" class="rounded" loading="lazy" />
               )}
               <a
                 href={versionedHref(`/item/${item.itemId}`, linkVersion)}
