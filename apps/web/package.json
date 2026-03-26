@@ -13,12 +13,12 @@
     "@astrojs/cloudflare": "^12.6.12",
     "@astrojs/svelte": "^7.2.5",
     "@tailwindcss/vite": "^4.1.18",
-    "astro": "^5.16.11",
+    "astro": "^5.18.1",
     "bits-ui": "^2.15.4",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.19",
     "lucide-svelte": "^0.562.0",
-    "svelte": "^5.20.2",
+    "svelte": "^5.53.5",
     "tailwind-merge": "^3.4.0",
     "tailwind-variants": "^3.2.2",
     "tailwindcss": "^4.1.18"
@@ -27,6 +27,6 @@
     "@astrojs/check": "^0.9.6",
     "@cloudflare/workers-types": "^4.20250313.0",
     "typescript": "^5.7.3",
-    "wrangler": "^4.8.0"
+    "wrangler": "^4.59.3"
   }
 }
