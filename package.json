@@ -5,6 +5,7 @@
   "description": "FF14 glamour combination statistics tool",
   "type": "module",
   "scripts": {
+    "dev:web": "pnpm --filter @mirapri/web dev",
     "dev:scraper": "pnpm --filter @mirapri/scraper dev",
     "build:scraper": "pnpm --filter @mirapri/scraper build",
     "test": "pnpm -r test",
