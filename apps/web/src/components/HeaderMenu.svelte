@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Dialog } from 'bits-ui';
-  import { Crown, Menu, MessageCircle, SwatchBook, X, Info } from 'lucide-svelte';
+  import { Crown, LayoutGrid, Menu, MessageCircle, SwatchBook, X, Info } from 'lucide-svelte';
   import SearchModal from './SearchModal.svelte';
   import VersionPicker from './VersionPicker.svelte';
   import { versionedHref } from '../lib/utils';
@@ -84,6 +84,16 @@
         >
           <SwatchBook class="size-5" />
           カララントピッカー
+        </a>
+        <a
+          href="https://4seasons.pl4rd.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="flex items-center gap-3 rounded-md px-3 py-3 text-sm hover:bg-accent transition-colors"
+          onclick={() => isMenuOpen = false}
+        >
+          <LayoutGrid class="size-5" />
+          4seasons
         </a>
         <a href="https://jp.finalfantasyxiv.com/lodestone/character/27344914/blog/5649674/"
           target="_blank"
