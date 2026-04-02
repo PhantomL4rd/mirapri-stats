@@ -47,19 +47,18 @@ jobs:
           CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
           CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: |
-          OUTPUT=$(pnpm -F @mirapri/sync start 2>&1) || EXIT_CODE=$?
-          echo "$OUTPUT"
+          pnpm -F @mirapri/sync start 2>&1 | tee /tmp/sync-output.log || EXIT_CODE=$?
 
           # Determine status based on output
-          if echo "$OUTPUT" | grep -q "No crawl progress found"; then
+          if grep -q "No crawl progress found" /tmp/sync-output.log; then
             echo "status=no_progress" >> $GITHUB_OUTPUT
             echo "Status: no crawl progress found"
             exit 0
-          elif echo "$OUTPUT" | grep -q "Scraper not finished yet"; then
+          elif grep -q "Scraper not finished yet" /tmp/sync-output.log; then
             echo "status=in_progress" >> $GITHUB_OUTPUT
             echo "Status: crawler in progress"
             exit 0
-          elif echo "$OUTPUT" | grep -q "Sync Complete"; then
+          elif grep -q "Sync Complete" /tmp/sync-output.log; then
             echo "status=complete" >> $GITHUB_OUTPUT
             echo "Status: sync complete"
           else
