@@ -110,12 +110,12 @@ describe('WriterClient', () => {
       );
     });
 
-    it('1000件を超えるアイテムはチャンク分割される', async () => {
+    it('2000件を超えるアイテムはチャンク分割される', async () => {
       mockFetch
-        .mockResolvedValueOnce(createMockResponse(200, { inserted: 1000, skipped: 0 }))
-        .mockResolvedValueOnce(createMockResponse(200, { inserted: 200, skipped: 0 }));
+        .mockResolvedValueOnce(createMockResponse(200, { inserted: 2000, skipped: 0 }))
+        .mockResolvedValueOnce(createMockResponse(200, { inserted: 500, skipped: 0 }));
 
-      const items: ExtractedItem[] = Array.from({ length: 1200 }, (_, i) => ({
+      const items: ExtractedItem[] = Array.from({ length: 2500 }, (_, i) => ({
         id: `item${i}`,
         name: `Name${i}`,
         slotId: 1,
@@ -125,7 +125,7 @@ describe('WriterClient', () => {
       const result = await client.postItems(items);
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
-      expect(result).toEqual({ inserted: 1200, skipped: 0 });
+      expect(result).toEqual({ inserted: 2500, skipped: 0 });
     });
 
     it('カスタムチャンクサイズを設定できる', async () => {
@@ -171,12 +171,12 @@ describe('WriterClient', () => {
       );
     });
 
-    it('1000件を超えるデータはチャンク分割される', async () => {
+    it('2000件を超えるデータはチャンク分割される', async () => {
       mockFetch
-        .mockResolvedValueOnce(createMockResponse(200, { inserted: 1000 }))
+        .mockResolvedValueOnce(createMockResponse(200, { inserted: 2000 }))
         .mockResolvedValueOnce(createMockResponse(200, { inserted: 500 }));
 
-      const usage: AggregatedUsage[] = Array.from({ length: 1500 }, (_, i) => ({
+      const usage: AggregatedUsage[] = Array.from({ length: 2500 }, (_, i) => ({
         slotId: (i % 5) + 1,
         itemId: `item${i}`,
         usageCount: i,
@@ -185,7 +185,7 @@ describe('WriterClient', () => {
       const result = await client.postUsage('v1', usage);
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
-      expect(result).toEqual({ inserted: 1500 });
+      expect(result).toEqual({ inserted: 2500 });
     });
   });
 
@@ -256,12 +256,12 @@ describe('WriterClient', () => {
       );
     });
 
-    it('1000件を超えるデータはチャンク分割される', async () => {
+    it('2000件を超えるデータはチャンク分割される', async () => {
       mockFetch
-        .mockResolvedValueOnce(createMockResponse(200, { inserted: 1000 }))
-        .mockResolvedValueOnce(createMockResponse(200, { inserted: 200 }));
+        .mockResolvedValueOnce(createMockResponse(200, { inserted: 2000 }))
+        .mockResolvedValueOnce(createMockResponse(200, { inserted: 500 }));
 
-      const pairs: AggregatedPair[] = Array.from({ length: 1200 }, (_, i) => ({
+      const pairs: AggregatedPair[] = Array.from({ length: 2500 }, (_, i) => ({
         baseSlotId: 1,
         partnerSlotId: 2,
         baseItemId: `itemA${i}`,
@@ -273,7 +273,7 @@ describe('WriterClient', () => {
       const result = await client.postPairs('v1', pairs);
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
-      expect(result).toEqual({ inserted: 1200 });
+      expect(result).toEqual({ inserted: 2500 });
     });
   });
 

@@ -11,15 +11,18 @@ import type {
  * バッチサイズ（件数）
  * Writer APIへの1リクエストあたりの最大件数
  */
-const DEFAULT_ITEMS_CHUNK_SIZE = 1000;
-const DEFAULT_USAGE_CHUNK_SIZE = 1000;
-const DEFAULT_PAIRS_CHUNK_SIZE = 1000;
+const DEFAULT_CHUNK_SIZE = 2000;
 
 const DEFAULT_CHUNK_SIZES = {
-  items: DEFAULT_ITEMS_CHUNK_SIZE,
-  usage: DEFAULT_USAGE_CHUNK_SIZE,
-  pairs: DEFAULT_PAIRS_CHUNK_SIZE,
+  items: DEFAULT_CHUNK_SIZE,
+  usage: DEFAULT_CHUNK_SIZE,
+  pairs: DEFAULT_CHUNK_SIZE,
 };
+
+/**
+ * 並列リクエスト数
+ */
+const DEFAULT_CONCURRENCY = 3;
 
 /**
  * リトライ設定
@@ -55,6 +58,30 @@ export interface WriterClient {
 }
 
 /**
+ * 並列数を制限して非同期タスクを実行する
+ * p-limit 相当の軽量実装
+ */
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const i = nextIndex++;
+      results[i] = await fn(items[i]!, i);
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
+}
+
+/**
  * WriterClient Factory
  */
 export function createWriterClient(config: WriterClientConfig): WriterClient {
@@ -63,6 +90,7 @@ export function createWriterClient(config: WriterClientConfig): WriterClient {
     ...config.chunkSizes,
   };
   const retryCount = config.retryCount ?? DEFAULT_RETRY_COUNT;
+  const concurrency = config.concurrency ?? DEFAULT_CONCURRENCY;
 
   /**
    * 共通ヘッダーを生成する
@@ -181,11 +209,7 @@ export function createWriterClient(config: WriterClientConfig): WriterClient {
 
     async postItems(items: ExtractedItem[]): Promise<{ inserted: number; skipped: number }> {
       const chunks = chunk(items, chunkSizes.items);
-      let totalInserted = 0;
-      let totalSkipped = 0;
-
-      for (let i = 0; i < chunks.length; i++) {
-        const batch = chunks[i]!;
+      const results = await mapWithConcurrency(chunks, concurrency, async (batch, i) => {
         const startTime = Date.now();
         console.log(
           `[Writer] Posting items batch ${i + 1}/${chunks.length} (${batch.length} items)...`,
@@ -211,22 +235,23 @@ export function createWriterClient(config: WriterClientConfig): WriterClient {
         }
 
         const result = (await response.json()) as WriterResponse;
-        totalInserted += result.inserted ?? 0;
-        totalSkipped += result.skipped ?? 0;
-
         const elapsed = Date.now() - startTime;
         console.log(`[Writer] Batch ${i + 1}/${chunks.length} completed in ${elapsed}ms`);
-      }
+        return result;
+      });
 
+      let totalInserted = 0;
+      let totalSkipped = 0;
+      for (const result of results) {
+        totalInserted += result.inserted ?? 0;
+        totalSkipped += result.skipped ?? 0;
+      }
       return { inserted: totalInserted, skipped: totalSkipped };
     },
 
     async postUsage(version: string, usage: AggregatedUsage[]): Promise<{ inserted: number }> {
       const chunks = chunk(usage, chunkSizes.usage);
-      let totalInserted = 0;
-
-      for (let i = 0; i < chunks.length; i++) {
-        const batch = chunks[i]!;
+      const results = await mapWithConcurrency(chunks, concurrency, async (batch, i) => {
         const startTime = Date.now();
         console.log(
           `[Writer] Posting usage batch ${i + 1}/${chunks.length} (${batch.length} records)...`,
@@ -252,21 +277,21 @@ export function createWriterClient(config: WriterClientConfig): WriterClient {
         }
 
         const result = (await response.json()) as WriterResponse;
-        totalInserted += result.inserted ?? 0;
-
         const elapsed = Date.now() - startTime;
         console.log(`[Writer] Batch ${i + 1}/${chunks.length} completed in ${elapsed}ms`);
-      }
+        return result;
+      });
 
+      let totalInserted = 0;
+      for (const result of results) {
+        totalInserted += result.inserted ?? 0;
+      }
       return { inserted: totalInserted };
     },
 
     async postPairs(version: string, pairs: AggregatedPair[]): Promise<{ inserted: number }> {
       const chunks = chunk(pairs, chunkSizes.pairs);
-      let totalInserted = 0;
-
-      for (let i = 0; i < chunks.length; i++) {
-        const batch = chunks[i]!;
+      const results = await mapWithConcurrency(chunks, concurrency, async (batch, i) => {
         const startTime = Date.now();
         console.log(
           `[Writer] Posting pairs batch ${i + 1}/${chunks.length} (${batch.length} records)...`,
@@ -295,12 +320,15 @@ export function createWriterClient(config: WriterClientConfig): WriterClient {
         }
 
         const result = (await response.json()) as WriterResponse;
-        totalInserted += result.inserted ?? 0;
-
         const elapsed = Date.now() - startTime;
         console.log(`[Writer] Batch ${i + 1}/${chunks.length} completed in ${elapsed}ms`);
-      }
+        return result;
+      });
 
+      let totalInserted = 0;
+      for (const result of results) {
+        totalInserted += result.inserted ?? 0;
+      }
       return { inserted: totalInserted };
     },
   };

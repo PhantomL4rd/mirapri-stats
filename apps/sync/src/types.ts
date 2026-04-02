@@ -74,6 +74,8 @@ export interface WriterClientConfig {
   /** Cloudflare Access Client Secret (オプション) */
   cfAccessClientSecret?: string;
   retryCount?: number;
+  /** 並列リクエスト数（デフォルト: 3） */
+  concurrency?: number;
   chunkSizes?: {
     items?: number;
     usage?: number;
