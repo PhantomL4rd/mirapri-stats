@@ -13,7 +13,7 @@
   "dependencies": {
     "@mirapri/shared": "workspace:*",
     "drizzle-orm": "^0.38.3",
-    "hono": "^4.7.5"
+    "hono": "^4.12.7"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.8.5",
