@@ -62,7 +62,7 @@ syncRoute.post('/commit', async (c) => {
       const tc = createTrendCalculator({ db });
       trendsComputed = await tc.computeAndStoreTrends(body.version, previousVersion);
     } catch (e) {
-      trendsWarning = `trend calculation failed: ${e instanceof Error ? e.message : String(e)}`;
+      trendsWarning = 'trend calculation failed (see server logs for details)';
       console.error('Trend calculation error:', e);
     }
   }

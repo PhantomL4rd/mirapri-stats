@@ -57,6 +57,11 @@ COPY --from=build /app/packages/shared/dist ./packages/shared/dist
 COPY --from=build /app/apps/scraper/dist ./apps/scraper/dist
 
 ENV NODE_ENV=production
+
+RUN addgroup --system --gid 1001 appgroup && \
+    adduser --system --uid 1001 --ingroup appgroup appuser
+USER appuser
+
 WORKDIR /app/apps/scraper
 
 # Run bundled JS directly (no tsx overhead)

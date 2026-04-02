@@ -210,6 +210,14 @@ function hiraganaToKatakana(str: string): string {
 }
 
 /**
+ * LIKE パターン内のワイルドカード文字をエスケープ
+ * `%`, `_`, `\` をバックスラッシュでエスケープする
+ */
+export function escapeLikePattern(input: string): string {
+  return input.replace(/[%_\\]/g, (ch) => `\\${ch}`);
+}
+
+/**
  * アイテム名で部分一致検索
  * pairsテーブルにデータがあるアイテムのみ、usage_count順で返す
  * ひらがな入力時はカタカナでも検索
@@ -230,13 +238,17 @@ export async function searchItems(
   }
 
   const v = version ?? (await getActiveVersion(db));
-  const likePattern = `%${query}%`;
+  const escaped = escapeLikePattern(query);
+  const likePattern = `%${escaped}%`;
   const katakanaQuery = hiraganaToKatakana(query);
-  const katakanaPattern = `%${katakanaQuery}%`;
+  const katakanaEscaped = escapeLikePattern(katakanaQuery);
+  const katakanaPattern = `%${katakanaEscaped}%`;
 
   // ひらがなとカタカナ両方で検索（同じ場合は1つのみ）
   const whereClause =
-    query === katakanaQuery ? 'i.name LIKE ?' : '(i.name LIKE ? OR i.name LIKE ?)';
+    query === katakanaQuery
+      ? "i.name LIKE ? ESCAPE '\\'"
+      : "(i.name LIKE ? ESCAPE '\\' OR i.name LIKE ? ESCAPE '\\')";
 
   const bindings =
     query === katakanaQuery

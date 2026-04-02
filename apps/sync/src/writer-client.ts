@@ -127,7 +127,8 @@ export function createWriterClient(config: WriterClientConfig): WriterClient {
 
   return {
     async startSync(): Promise<{ version: string }> {
-      const response = await fetchWithRetry(`${config.baseUrl}/api/sync/start`, {
+      const startUrl = new URL('/api/sync/start', config.baseUrl);
+      const response = await fetchWithRetry(startUrl.toString(), {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({}),
@@ -151,7 +152,8 @@ export function createWriterClient(config: WriterClientConfig): WriterClient {
         body['dataTo'] = options.dataTo.toISOString();
       }
 
-      const response = await fetchWithRetry(`${config.baseUrl}/api/sync/commit`, {
+      const commitUrl = new URL('/api/sync/commit', config.baseUrl);
+      const response = await fetchWithRetry(commitUrl.toString(), {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify(body),
@@ -164,7 +166,8 @@ export function createWriterClient(config: WriterClientConfig): WriterClient {
     },
 
     async abortSync(version: string): Promise<void> {
-      const response = await fetchWithRetry(`${config.baseUrl}/api/sync/abort`, {
+      const abortUrl = new URL('/api/sync/abort', config.baseUrl);
+      const response = await fetchWithRetry(abortUrl.toString(), {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ version }),
@@ -188,7 +191,8 @@ export function createWriterClient(config: WriterClientConfig): WriterClient {
           `[Writer] Posting items batch ${i + 1}/${chunks.length} (${batch.length} items)...`,
         );
 
-        const response = await fetchWithRetry(`${config.baseUrl}/api/items`, {
+        const itemsUrl = new URL('/api/items', config.baseUrl);
+        const response = await fetchWithRetry(itemsUrl.toString(), {
           method: 'POST',
           headers: getHeaders(),
           body: JSON.stringify({
@@ -228,7 +232,9 @@ export function createWriterClient(config: WriterClientConfig): WriterClient {
           `[Writer] Posting usage batch ${i + 1}/${chunks.length} (${batch.length} records)...`,
         );
 
-        const response = await fetchWithRetry(`${config.baseUrl}/api/usage?version=${version}`, {
+        const usageUrl = new URL('/api/usage', config.baseUrl);
+        usageUrl.searchParams.set('version', version);
+        const response = await fetchWithRetry(usageUrl.toString(), {
           method: 'POST',
           headers: getHeaders(),
           body: JSON.stringify({
@@ -266,7 +272,9 @@ export function createWriterClient(config: WriterClientConfig): WriterClient {
           `[Writer] Posting pairs batch ${i + 1}/${chunks.length} (${batch.length} records)...`,
         );
 
-        const response = await fetchWithRetry(`${config.baseUrl}/api/pairs?version=${version}`, {
+        const pairsUrl = new URL('/api/pairs', config.baseUrl);
+        pairsUrl.searchParams.set('version', version);
+        const response = await fetchWithRetry(pairsUrl.toString(), {
           method: 'POST',
           headers: getHeaders(),
           body: JSON.stringify({
