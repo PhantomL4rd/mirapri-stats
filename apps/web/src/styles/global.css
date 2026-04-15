@@ -12,38 +12,42 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
   --radius-lg: var(--radius);
 }
 
+/* Catppuccin Latte Yellow (light) / Mocha Yellow (dark) */
 :root {
   color-scheme: light dark;
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --border: oklch(0.922 0 0);
-  --accent: oklch(0.795 0.16 85);
-  --accent-foreground: oklch(0.28 0.06 75);
-  --radius: 0.5rem;
+  --background: hsl(220 23.08% 94.90%);
+  --foreground: hsl(234 16.02% 35.49%);
+  --card: hsl(220 23.08% 94.90%);
+  --card-foreground: hsl(234 16.02% 35.49%);
+  --primary: hsl(35 76.98% 49.41%);
+  --primary-foreground: hsl(220 23.08% 94.90%);
+  --muted: hsl(223 15.91% 82.75%);
+  --muted-foreground: hsl(233 12.80% 41.37%);
+  --border: hsl(225 13.56% 76.86%);
+  --accent: hsl(223 15.91% 82.75%);
+  --accent-foreground: hsl(234 16.02% 35.49%);
+  --destructive: hsl(347 86.67% 44.12%);
+  --radius: 0.625rem;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --border: oklch(0.269 0 0);
-    --accent: oklch(0.75 0.14 85);
-    --accent-foreground: oklch(0.98 0.01 85);
+    --background: hsl(240 21.05% 14.90%);
+    --foreground: hsl(226 63.93% 88.04%);
+    --card: hsl(240 21.05% 14.90%);
+    --card-foreground: hsl(226 63.93% 88.04%);
+    --primary: hsl(41 86.05% 83.14%);
+    --primary-foreground: hsl(240 21.05% 14.90%);
+    --muted: hsl(237 16.24% 22.94%);
+    --muted-foreground: hsl(227 35.29% 80.00%);
+    --border: hsl(234 13.21% 31.18%);
+    --accent: hsl(237 16.24% 22.94%);
+    --accent-foreground: hsl(226 63.93% 88.04%);
+    --destructive: hsl(343 81.25% 74.90%);
   }
 }
 
