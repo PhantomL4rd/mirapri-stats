@@ -13,6 +13,12 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --radius-lg: var(--radius);
 }
 
@@ -31,6 +37,12 @@
   --accent: hsl(223 15.91% 82.75%);
   --accent-foreground: hsl(234 16.02% 35.49%);
   --destructive: hsl(347 86.67% 44.12%);
+  --info: hsl(220 91.38% 91.76%);
+  --info-foreground: hsl(220 91.38% 54.12%);
+  --success: hsl(109 58.33% 40.39%);
+  --danger: hsl(347 86.67% 44.12%);
+  --warning: hsl(22 98.55% 51.37%);
+  --warning-foreground: hsl(22 98.55% 51.37%);
   --radius: 0.625rem;
 }
 
@@ -48,6 +60,12 @@
     --accent: hsl(237 16.24% 22.94%);
     --accent-foreground: hsl(226 63.93% 88.04%);
     --destructive: hsl(343 81.25% 74.90%);
+    --info: hsl(217 91.87% 22.94%);
+    --info-foreground: hsl(217 91.87% 75.88%);
+    --success: hsl(105 48.39% 51.76%);
+    --danger: hsl(343 81.25% 74.90%);
+    --warning: hsl(23 92.31% 74.71%);
+    --warning-foreground: hsl(23 92.31% 74.71%);
   }
 }
 

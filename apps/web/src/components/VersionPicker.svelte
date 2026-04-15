@@ -49,13 +49,13 @@
   <Popover.Trigger
     class={cn(
       "p-2 rounded-md hover:bg-primary-foreground/10 transition-colors relative",
-      isViewingOldData && "text-amber-300"
+      isViewingOldData && "text-info-foreground"
     )}
     aria-label="データ期間を切り替え"
   >
     <History class="size-6" />
     {#if isViewingOldData}
-      <span class="absolute -top-0.5 -right-0.5 size-2 bg-amber-400 rounded-full"></span>
+      <span class="absolute -top-0.5 -right-0.5 size-2 bg-info-foreground rounded-full"></span>
     {/if}
   </Popover.Trigger>
 
@@ -68,7 +68,7 @@
       <div class="p-3 border-b border-border">
         <p class="text-sm font-medium">データ期間</p>
         {#if isViewingOldData}
-          <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">過去データを表示中</p>
+          <p class="text-xs text-warning-foreground mt-1">過去データを表示中</p>
         {/if}
       </div>
       <ul class="max-h-60 overflow-y-auto">

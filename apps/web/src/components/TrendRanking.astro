@@ -62,9 +62,9 @@ function formatRankDelta(rankDelta: number | null): string | null {
                   formatRankDelta(item.rankDelta) && (
                     <span class={
                       item.rankDelta !== null && item.rankDelta > 0
-                        ? 'text-emerald-600 dark:text-emerald-400 font-medium'
+                        ? 'text-success font-medium'
                         : item.rankDelta !== null && item.rankDelta < 0
-                          ? 'text-red-500 dark:text-red-400 font-medium'
+                          ? 'text-danger font-medium'
                           : 'text-muted-foreground'
                     }>
                       {formatRankDelta(item.rankDelta)}
