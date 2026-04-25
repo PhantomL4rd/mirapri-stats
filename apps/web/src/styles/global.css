@@ -12,38 +12,84 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-banner: var(--banner);
+  --color-rank-up: var(--rank-up);
+  --color-rank-down: var(--rank-down);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-ring: var(--ring);
   --radius-lg: var(--radius);
 }
 
+/* Catppuccin Latte (monochrome neutrals) */
 :root {
   color-scheme: light dark;
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --border: oklch(0.922 0 0);
-  --accent: oklch(0.795 0.16 85);
-  --accent-foreground: oklch(0.28 0.06 75);
+
+  --ctp-base: oklch(0.959 0.007 286);
+  --ctp-mantle: oklch(0.931 0.008 286);
+  --ctp-crust: oklch(0.897 0.010 286);
+  --ctp-surface0: oklch(0.915 0.009 286);
+  --ctp-surface1: oklch(0.864 0.012 286);
+  --ctp-surface2: oklch(0.806 0.014 286);
+  --ctp-overlay0: oklch(0.743 0.017 286);
+  --ctp-overlay1: oklch(0.679 0.019 286);
+  --ctp-overlay2: oklch(0.616 0.022 286);
+  --ctp-subtext0: oklch(0.553 0.024 286);
+  --ctp-subtext1: oklch(0.490 0.025 286);
+  --ctp-text: oklch(0.428 0.025 286);
+
+  /* Semantic accents (no yellow) */
+  --ctp-peach: oklch(0.700 0.150 50);
+  --ctp-blue: oklch(0.546 0.214 263);
+  --ctp-green: oklch(0.617 0.171 142);
+  --ctp-red: oklch(0.553 0.214 22);
+
+  --background: var(--ctp-base);
+  --foreground: var(--ctp-text);
+  --card: var(--ctp-mantle);
+  --card-foreground: var(--ctp-text);
+  --primary: var(--ctp-subtext1);
+  --primary-foreground: var(--ctp-base);
+  --muted: var(--ctp-surface0);
+  --muted-foreground: var(--ctp-subtext0);
+  --accent: var(--ctp-surface1);
+  --accent-foreground: var(--ctp-text);
+  --border: var(--ctp-surface1);
+  --ring: var(--ctp-overlay0);
+
+  --warning: var(--ctp-peach);
+  --warning-foreground: var(--ctp-base);
+  --banner: var(--ctp-blue);
+  --rank-up: var(--ctp-green);
+  --rank-down: var(--ctp-red);
+  --destructive: var(--ctp-red);
+  --destructive-foreground: var(--ctp-base);
+
   --radius: 0.5rem;
 }
 
+/* Catppuccin Macchiato (monochrome neutrals) */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --border: oklch(0.269 0 0);
-    --accent: oklch(0.75 0.14 85);
-    --accent-foreground: oklch(0.98 0.01 85);
+    --ctp-base: oklch(0.252 0.034 285);
+    --ctp-mantle: oklch(0.219 0.030 285);
+    --ctp-crust: oklch(0.180 0.025 286);
+    --ctp-surface0: oklch(0.323 0.031 285);
+    --ctp-surface1: oklch(0.391 0.030 285);
+    --ctp-surface2: oklch(0.460 0.030 285);
+    --ctp-overlay0: oklch(0.527 0.030 283);
+    --ctp-overlay1: oklch(0.594 0.029 281);
+    --ctp-overlay2: oklch(0.665 0.030 280);
+    --ctp-subtext0: oklch(0.730 0.030 278);
+    --ctp-subtext1: oklch(0.798 0.032 274);
+    --ctp-text: oklch(0.866 0.036 272);
+
+    --ctp-peach: oklch(0.804 0.103 47);
+    --ctp-blue: oklch(0.727 0.117 251);
+    --ctp-green: oklch(0.834 0.122 144);
+    --ctp-red: oklch(0.737 0.131 12);
   }
 }
 
@@ -79,4 +125,4 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-}     
+}

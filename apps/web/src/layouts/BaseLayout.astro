@@ -86,7 +86,7 @@ const linkVersion = isViewingOldData ? currentVersion : undefined;
       {showFreshness && (
         <div class="mx-auto max-w-4xl px-4 pb-1 text-center text-xs text-muted-foreground tabular-nums">
           統計期間: {formatDateFull(freshness!.dataFrom)} - {formatDateFull(freshness!.dataTo)}
-          {isViewingOldData && <span class="text-amber-600 ml-1">(過去データ)</span>}
+          {isViewingOldData && <span class="text-warning ml-1">(過去データ)</span>}
         </div>
       )}
       {nextUpdateDate && !isViewingOldData && (
