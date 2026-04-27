@@ -1,0 +1,61 @@
+<script lang="ts">
+  import BaseLayout from '../layouts/BaseLayout.svelte';
+</script>
+
+<BaseLayout title="このサイトについて | ミラプリインサイト">
+  <article class="max-w-none">
+    <h1 class="text-2xl font-bold text-balance text-foreground">このサイトについて</h1>
+
+    <p class="mt-4 text-muted-foreground text-pretty">
+      ミラプリインサイトは、FF14プレイヤーのミラプリ（glamour）の傾向を集計・可視化するサイトです。
+    </p>
+
+    <h2 class="mt-8 mb-4 text-xl font-bold border-b border-border pb-2 text-foreground">できること</h2>
+
+    <ul class="my-4 pl-6 list-disc text-muted-foreground">
+      <li class="my-2">人気のミラプリアイテムがわかる</li>
+      <li class="my-2">アイテムの組み合わせ傾向がわかる</li>
+      <li class="my-2">ミラプリの参考になる</li>
+    </ul>
+
+    <h2 class="mt-8 mb-4 text-xl font-bold border-b border-border pb-2 text-foreground">プライバシーへの配慮</h2>
+
+    <ul class="my-4 pl-6 list-disc text-muted-foreground">
+      <li class="my-2">
+        <strong class="text-foreground">個人は特定できません</strong> - 3人未満の組み合わせは表示しない仕組み（k-匿名化）を採用
+      </li>
+      <li class="my-2"><strong class="text-foreground">キャラクター名・IDは保存しません</strong> - 集計結果の数字のみを保持</li>
+      <li class="my-2"><strong class="text-foreground">公開情報のみ使用</strong> - ログイン不要で誰でも見られるLodestone情報のみ</li>
+      <li class="my-2"><strong class="text-foreground">個人ページは存在しません</strong> - 特定のキャラクターを表示する機能はありません</li>
+      <li class="my-2">
+        <strong class="text-foreground">オプトアウト可能</strong> - プロフィールに <code class="bg-muted px-1 py-0.5 rounded text-sm">#opt-out-stats</code> と書くと除外されます
+      </li>
+    </ul>
+
+    <h2 class="mt-8 mb-4 text-xl font-bold border-b border-border pb-2 text-foreground">運営方針</h2>
+
+    <ul class="my-4 pl-6 list-disc text-muted-foreground">
+      <li class="my-2">完全無料・非営利（広告なし）</li>
+      <li class="my-2">AI・機械学習の訓練には使用しません</li>
+      <li class="my-2">サンプリングによりLodestoneへの負荷を最小限に</li>
+    </ul>
+
+    <h2 class="mt-8 mb-4 text-xl font-bold border-b border-border pb-2 text-foreground">投稿サイトとの違い</h2>
+
+    <p class="text-muted-foreground text-pretty">
+      投稿サイトが「ファッションショー」なら、ここは「ストリートスナップ」。<br />
+      作品ではなく、実際に着られている装備の統計です。
+    </p>
+
+    <h2 class="mt-8 mb-4 text-xl font-bold border-b border-border pb-2 text-foreground">お問い合わせ</h2>
+
+    <p class="text-muted-foreground text-pretty">
+      ご意見・ご質問があれば <a
+        href="https://jp.finalfantasyxiv.com/lodestone/character/27344914/blog/5649674/"
+        class="underline hover:text-foreground"
+        target="_blank"
+        rel="noopener noreferrer">Lodestoneの日記</a
+      > までお願いします。
+    </p>
+  </article>
+</BaseLayout>
