@@ -586,7 +586,6 @@ export async function getSimilarItems(
  * stain1Id / stain2Id が null = 未染色
  */
 export interface DyeComboResult {
-  comboCount: number;
   stain1Name: string | null;
   stain1Rgb: { r: number; g: number; b: number } | null;
   stain2Name: string | null;
