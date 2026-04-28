@@ -27,6 +27,16 @@ describe('runSync', () => {
         .mockResolvedValue([
           { slotPair: 'head-body', itemIdA: 'item1', itemIdB: 'item2', pairCount: 10, rank: 1 },
         ]),
+      aggregateDyeCombos: vi.fn().mockResolvedValue([
+        {
+          slotId: 1,
+          itemId: 'item1',
+          stain1Name: null,
+          stain2Name: null,
+          comboCount: 5,
+          rank: 1,
+        },
+      ]),
       isCrawlComplete: vi.fn().mockResolvedValue(true),
       getCrawlStatus: vi.fn().mockResolvedValue('complete'),
       getDataDateRange: vi.fn().mockResolvedValue({
@@ -43,6 +53,8 @@ describe('runSync', () => {
       postItems: vi.fn().mockResolvedValue({ inserted: 2, skipped: 0 }),
       postUsage: vi.fn().mockResolvedValue({ inserted: 2 }),
       postPairs: vi.fn().mockResolvedValue({ inserted: 1 }),
+      postDyeCombos: vi.fn().mockResolvedValue({ inserted: 1 }),
+      postStains: vi.fn().mockResolvedValue({ inserted: 0 }),
     };
 
     deps = {
@@ -242,11 +254,12 @@ describe('runSync', () => {
         dryRun: false,
       });
 
-      expect(progressLogs).toHaveLength(4);
+      expect(progressLogs).toHaveLength(5);
       expect(progressLogs[0]).toContain('[items]');
       expect(progressLogs[1]).toContain('[usage]');
       expect(progressLogs[2]).toContain('[pairs]');
-      expect(progressLogs[3]).toContain('[cleanup]');
+      expect(progressLogs[3]).toContain('[dye_combos]');
+      expect(progressLogs[4]).toContain('[cleanup]');
     });
 
     it('dry-run時は進捗を通知しない', async () => {

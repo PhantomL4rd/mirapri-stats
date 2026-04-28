@@ -298,6 +298,85 @@ describe('Aggregator', () => {
     });
   });
 
+  describe('aggregateDyeCombos', () => {
+    const createDyeMockDb = (mockExecute: ReturnType<typeof vi.fn>) =>
+      ({
+        execute: mockExecute,
+      }) as unknown as AggregatorDependencies['db'];
+
+    it('SQL結果を AggregatedDyeCombo の配列に変換する', async () => {
+      const mockExecute = vi.fn().mockResolvedValue([
+        {
+          slot_id: '1',
+          item_id: 'head1',
+          stain1_name: 'ロイヤルブルー',
+          stain2_name: 'スノウホワイト',
+          combo_count: '5',
+          rank: '1',
+        },
+        {
+          slot_id: '1',
+          item_id: 'head1',
+          stain1_name: null,
+          stain2_name: null,
+          combo_count: '3',
+          rank: '2',
+        },
+      ]);
+      const aggregator = createAggregator({ db: createDyeMockDb(mockExecute) });
+
+      const result = await aggregator.aggregateDyeCombos();
+
+      expect(result).toEqual([
+        {
+          slotId: 1,
+          itemId: 'head1',
+          stain1Name: 'ロイヤルブルー',
+          stain2Name: 'スノウホワイト',
+          comboCount: 5,
+          rank: 1,
+        },
+        {
+          slotId: 1,
+          itemId: 'head1',
+          stain1Name: null,
+          stain2Name: null,
+          comboCount: 3,
+          rank: 2,
+        },
+      ]);
+    });
+
+    it('postgres-js の RowList のような Iterable も配列化できる', async () => {
+      // RowList は配列ではなく Iterable
+      const iterable = {
+        *[Symbol.iterator]() {
+          yield {
+            slot_id: 2,
+            item_id: 'body1',
+            stain1_name: '赤',
+            stain2_name: null,
+            combo_count: 4,
+            rank: 1,
+          };
+        },
+      };
+      const mockExecute = vi.fn().mockResolvedValue(iterable);
+      const aggregator = createAggregator({ db: createDyeMockDb(mockExecute) });
+
+      const result = await aggregator.aggregateDyeCombos();
+      expect(result).toHaveLength(1);
+      expect(result[0]?.stain1Name).toBe('赤');
+      expect(result[0]?.stain2Name).toBeNull();
+    });
+
+    it('空結果は空配列を返す', async () => {
+      const mockExecute = vi.fn().mockResolvedValue([]);
+      const aggregator = createAggregator({ db: createDyeMockDb(mockExecute) });
+      expect(await aggregator.aggregateDyeCombos()).toEqual([]);
+    });
+  });
+
   describe('isCrawlComplete', () => {
     it('exitReasonがCOMPLETEDならtrueを返す', async () => {
       const mockSelect = vi.fn(() => ({

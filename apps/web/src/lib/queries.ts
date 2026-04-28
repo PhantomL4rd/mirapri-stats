@@ -580,3 +580,66 @@ export async function getSimilarItems(
     iconUrl: row.icon_url ?? null,
   }));
 }
+
+/**
+ * 染色組み合わせ1件
+ * stain1Id / stain2Id が null = 未染色
+ */
+export interface DyeComboResult {
+  comboCount: number;
+  stain1Name: string | null;
+  stain1Rgb: { r: number; g: number; b: number } | null;
+  stain2Name: string | null;
+  stain2Rgb: { r: number; g: number; b: number } | null;
+}
+
+/**
+ * 指定アイテムの「人気の染色組み合わせ」を全件（k=3 で集計済みのもの）取得
+ */
+export async function getItemDyeCombos(
+  db: D1Database,
+  itemId: string,
+  version?: string,
+): Promise<DyeComboResult[]> {
+  const v = version ?? (await getActiveVersion(db));
+
+  const query = `
+    SELECT
+      c.combo_count,
+      c.stain1_name,
+      s1.r AS stain1_r, s1.g AS stain1_g, s1.b AS stain1_b,
+      c.stain2_name,
+      s2.r AS stain2_r, s2.g AS stain2_g, s2.b AS stain2_b
+    FROM item_dye_combos c
+    LEFT JOIN stains s1 ON c.stain1_name = s1.name
+    LEFT JOIN stains s2 ON c.stain2_name = s2.name
+    WHERE c.version = ? AND c.item_id = ?
+    ORDER BY c.rank
+  `;
+
+  const result = await db.prepare(query).bind(v, itemId).all<{
+    combo_count: number;
+    stain1_name: string | null;
+    stain1_r: number | null;
+    stain1_g: number | null;
+    stain1_b: number | null;
+    stain2_name: string | null;
+    stain2_r: number | null;
+    stain2_g: number | null;
+    stain2_b: number | null;
+  }>();
+
+  return (result.results ?? []).map((row) => ({
+    comboCount: row.combo_count,
+    stain1Name: row.stain1_name,
+    stain1Rgb:
+      row.stain1_r !== null && row.stain1_g !== null && row.stain1_b !== null
+        ? { r: row.stain1_r, g: row.stain1_g, b: row.stain1_b }
+        : null,
+    stain2Name: row.stain2_name,
+    stain2Rgb:
+      row.stain2_r !== null && row.stain2_g !== null && row.stain2_b !== null
+        ? { r: row.stain2_r, g: row.stain2_g, b: row.stain2_b }
+        : null,
+  }));
+}

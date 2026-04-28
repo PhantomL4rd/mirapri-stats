@@ -38,6 +38,16 @@ jobs:
       - name: Build sync
         run: pnpm -F @mirapri/sync build
 
+      # 色マスタ更新は副次的処理。失敗しても本体 sync は続行する。
+      - name: Sync dye master
+        continue-on-error: true
+        env:
+          WORKER_URL: ${{ secrets.WORKER_URL }}
+          WORKER_AUTH_TOKEN: ${{ secrets.WORKER_AUTH_TOKEN }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: pnpm -F @mirapri/sync dye-master
+
       - name: Run sync
         id: sync
         env:
@@ -47,7 +57,9 @@ jobs:
           CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
           CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: |
-          pnpm -F @mirapri/sync start 2>&1 | tee /tmp/sync-output.log || EXIT_CODE=$?
+          # 動作確認期間中は --skip-cleanup で Supabase 元データを残す。
+          # web で染色組み合わせが正しく表示されることを確認できたらこのフラグを外す。
+          pnpm -F @mirapri/sync start -- --skip-cleanup 2>&1 | tee /tmp/sync-output.log || EXIT_CODE=$?
 
           # Determine status based on output
           if grep -q "No crawl progress found" /tmp/sync-output.log; then

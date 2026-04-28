@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import { authMiddleware } from './middleware/auth.js';
+import { dyeCombosRoute } from './routes/dye-combos.js';
 import { itemsRoute } from './routes/items.js';
 import { pairsRoute } from './routes/pairs.js';
+import { stainsRoute } from './routes/stains.js';
 import { syncRoute } from './routes/sync.js';
 import { usageRoute } from './routes/usage.js';
 import type { Env } from './types.js';
@@ -17,6 +19,8 @@ api.use('/*', authMiddleware);
 api.route('/items', itemsRoute);
 api.route('/usage', usageRoute);
 api.route('/pairs', pairsRoute);
+api.route('/stains', stainsRoute);
+api.route('/dye-combos', dyeCombosRoute);
 api.route('/sync', syncRoute);
 
 app.route('/api', api);

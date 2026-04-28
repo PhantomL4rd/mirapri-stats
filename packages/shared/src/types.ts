@@ -30,6 +30,10 @@ export interface GlamourData {
   itemId: string | null;
   /** 装備名（HTMLから抽出） */
   itemName: string | null;
+  /** 主染色のJP色名（null = 未染色、stains マスタの PK と一致） */
+  stain1Name: string | null;
+  /** 副染色のJP色名（null = 未染色） */
+  stain2Name: string | null;
 }
 
 /**

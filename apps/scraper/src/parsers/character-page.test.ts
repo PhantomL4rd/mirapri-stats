@@ -24,6 +24,51 @@ const createNonMirageSection = (itemName: string, category: string) => `
   </div>
 `;
 
+/**
+ * 実Lodestoneの構造を模した装備カード（染色情報を含む）
+ *
+ * @param mainStain 主染色: { id, name } で染色済、null で未染色
+ * @param subStain 副染色: { id, name } で染色済、null で未染色
+ */
+const createDbTooltipCard = (
+  itemName: string,
+  itemUrl: string,
+  category: string,
+  mainStain: { id: string; name: string } | null,
+  subStain: { id: string; name: string } | null,
+) => {
+  const mainStainDiv = mainStain
+    ? '<div class="mirage_staining--19 painted_cover" style="background-color: #2b2923;"></div>'
+    : '<div class="mirage_staining--19 no_paint"></div>';
+  const subStainDiv = subStain
+    ? '<div class="mirage_staining--19 painted_cover" style="background-color: #ffffff;"></div>'
+    : '<div class="mirage_staining--19 no_paint"></div>';
+
+  const stainAnchors = [mainStain, subStain]
+    .filter((s): s is { id: string; name: string } => s !== null)
+    .map(
+      (s) =>
+        `<div class="stain"><a href="/lodestone/playguide/db/item/${s.id}/">カララント:${s.name}</a></div>`,
+    )
+    .join('');
+
+  return `
+    <div class="db-tooltip db-tooltip__wrapper item_detail_box">
+      <div class="db-tooltip__item__icon">
+        ${mainStainDiv}
+        <div class="stain2-mirage">${subStainDiv}</div>
+      </div>
+      <div class="db-tooltip__item__txt">
+        <div class="db-tooltip__item__mirage clearfix">
+          <p>${itemName}<a href="${itemUrl}">詳細</a></p>
+        </div>
+        <p class="db-tooltip__item__category">${category}</p>
+      </div>
+      <div class="list_1col eorzeadb_tooltip_mb10">${stainAnchors}</div>
+    </div>
+  `;
+};
+
 describe('Parser', () => {
   describe('parseGlamourData', () => {
     it('should extract itemId from URL in mirage section', () => {
@@ -142,6 +187,71 @@ describe('Parser', () => {
         'legs',
         'feet',
       ]);
+    });
+  });
+
+  describe('Stain Extraction', () => {
+    it('should return null stains when item has no dye paint', () => {
+      const html = `<html>${createDbTooltipCard('胴', '/lodestone/playguide/db/item/body/', '胴防具', null, null)}</html>`;
+      const result = parseGlamourData(html);
+      expect(result[0]?.stain1Name).toBeNull();
+      expect(result[0]?.stain2Name).toBeNull();
+    });
+
+    it('should extract stain1 when only main slot is painted', () => {
+      const html = `<html>${createDbTooltipCard(
+        '胴',
+        '/lodestone/playguide/db/item/body/',
+        '胴防具',
+        { id: '23edc014362', name: 'ロイヤルブルー' },
+        null,
+      )}</html>`;
+      const result = parseGlamourData(html);
+      expect(result[0]?.stain1Name).toBe('ロイヤルブルー');
+      expect(result[0]?.stain2Name).toBeNull();
+    });
+
+    it('should extract stain2 when only sub slot is painted', () => {
+      const html = `<html>${createDbTooltipCard(
+        '胴',
+        '/lodestone/playguide/db/item/body/',
+        '胴防具',
+        null,
+        { id: '0c0c7f94f09', name: 'スートブラック' },
+      )}</html>`;
+      const result = parseGlamourData(html);
+      expect(result[0]?.stain1Name).toBeNull();
+      expect(result[0]?.stain2Name).toBe('スートブラック');
+    });
+
+    it('should extract both stain1 and stain2 when both slots are painted', () => {
+      const html = `<html>${createDbTooltipCard(
+        '頭',
+        '/lodestone/playguide/db/item/head/',
+        '頭防具',
+        { id: '23edc014362', name: 'ロイヤルブルー' },
+        { id: '188d2c75e07', name: 'スノウホワイト' },
+      )}</html>`;
+      const result = parseGlamourData(html);
+      expect(result[0]?.stain1Name).toBe('ロイヤルブルー');
+      expect(result[0]?.stain2Name).toBe('スノウホワイト');
+    });
+
+    it('should not leak stains across adjacent item cards', () => {
+      const html = `
+        <html>
+          ${createDbTooltipCard('頭', '/lodestone/playguide/db/item/head/', '頭防具', { id: 'redA', name: '赤A' }, null)}
+          ${createDbTooltipCard('胴', '/lodestone/playguide/db/item/body/', '胴防具', null, { id: 'blueB', name: '青B' })}
+        </html>
+      `;
+      const result = parseGlamourData(html);
+      expect(result).toHaveLength(2);
+      const head = result.find((r) => r.slot === 'head');
+      const body = result.find((r) => r.slot === 'body');
+      expect(head?.stain1Name).toBe('赤A');
+      expect(head?.stain2Name).toBeNull();
+      expect(body?.stain1Name).toBeNull();
+      expect(body?.stain2Name).toBe('青B');
     });
   });
 

@@ -99,7 +99,7 @@ describe('VersionManager', () => {
   });
 
   describe('abortSync', () => {
-    it('指定バージョンの usage と pairs を削除する', async () => {
+    it('指定バージョンの usage / pairs / item_dye_combos を削除する', async () => {
       const mockDelete = vi.fn(() => ({
         where: vi.fn().mockResolvedValue(undefined),
       }));
@@ -110,8 +110,8 @@ describe('VersionManager', () => {
       const vm = createVersionManager({ db: mockDb });
       await vm.abortSync('abort-version');
 
-      // usage と pairs の2回削除
-      expect(mockDelete).toHaveBeenCalledTimes(2);
+      // usage + pairs + item_dye_combos の3回削除
+      expect(mockDelete).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -145,8 +145,8 @@ describe('VersionManager', () => {
       const vm = createVersionManager({ db: mockDb });
       await vm.cleanupOldVersions();
 
-      // v1-oldest のデータが削除される（usage + pairs + sync_versions = 3回）
-      expect(mockDelete).toHaveBeenCalledTimes(3);
+      // v1-oldest のデータが削除される（usage + pairs + item_dye_combos + sync_versions = 4回）
+      expect(mockDelete).toHaveBeenCalledTimes(4);
     });
 
     it('6世代以内なら削除しない', async () => {

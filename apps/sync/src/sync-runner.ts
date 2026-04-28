@@ -23,6 +23,7 @@ export async function runSync(
     itemsSkipped: 0,
     usageInserted: 0,
     pairsInserted: 0,
+    dyeCombosInserted: 0,
     errors: [],
   };
 
@@ -112,6 +113,22 @@ export async function runSync(
       pairsProgress.processed = pairs.length;
       onProgress?.(pairsProgress);
 
+      // Phase 3.5: 染色組み合わせ送信
+      console.log('[Sync] Aggregating dye combos...');
+      const dyeCombos = await aggregator.aggregateDyeCombos();
+      console.log(`[Sync] Found ${dyeCombos.length} dye combo records`);
+      const dyeCombosProgress: SyncProgress = {
+        phase: 'dye_combos',
+        processed: 0,
+        total: dyeCombos.length,
+        errors: 0,
+      };
+      console.log('[Sync] Posting dye combos to D1...');
+      const dyeCombosResult = await client.postDyeCombos(version, dyeCombos);
+      result.dyeCombosInserted = dyeCombosResult.inserted;
+      dyeCombosProgress.processed = dyeCombos.length;
+      onProgress?.(dyeCombosProgress);
+
       // Phase 4: データ取得期間を取得
       console.log('[Sync] Getting data date range...');
       const dateRange = await aggregator.getDataDateRange();
@@ -140,8 +157,11 @@ export async function runSync(
     }
   }
 
-  // Cleanup (sync 成功時のみ、dry-run 以外)
-  if (!options.dryRun && result.errors.length === 0) {
+  // Cleanup (sync 成功時のみ、dry-run および skip-cleanup 以外)
+  if (options.skipCleanup) {
+    console.log('[Sync] Cleanup skipped (--skip-cleanup)');
+  }
+  if (!options.dryRun && !options.skipCleanup && result.errors.length === 0) {
     const progress: SyncProgress = {
       phase: 'cleanup',
       processed: 0,

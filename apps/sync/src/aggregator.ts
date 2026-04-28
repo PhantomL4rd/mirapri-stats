@@ -2,7 +2,12 @@ import { charactersGlamour, crawlProgress, itemsCache } from '@mirapri/shared';
 import type * as schema from '@mirapri/shared/schema';
 import { count, notInArray, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import type { AggregatedPair, AggregatedUsage, ExtractedItem } from './types.js';
+import type {
+  AggregatedDyeCombo,
+  AggregatedPair,
+  AggregatedUsage,
+  ExtractedItem,
+} from './types.js';
 
 /**
  * プライバシー保護のための最小カウント閾値
@@ -38,6 +43,17 @@ const PAIR_SLOTS = [
   { slotA: 4, slotB: 5 }, // legs-feet
 ] as const;
 
+/**
+ * 生 SQL 内の `WHERE item_id NOT IN (...)` 用に EXCLUDED_ITEM_IDS を bind 化した SQL 断片を返す。
+ * drizzle ORM の `notInArray` と等価で、SQL injection 安全。
+ */
+function excludedItemsSql() {
+  return sql.join(
+    EXCLUDED_ITEM_IDS.map((id) => sql`${id}`),
+    sql`, `,
+  );
+}
+
 export interface AggregatorDependencies {
   db: PostgresJsDatabase<typeof schema>;
 }
@@ -55,6 +71,8 @@ export interface Aggregator {
   extractUniqueItems(): Promise<ExtractedItem[]>;
   aggregateUsage(): Promise<AggregatedUsage[]>;
   aggregatePairs(): Promise<AggregatedPair[]>;
+  /** 装備ごとの染色組み合わせ（主×副）を集計、各itemId内でrank付与 */
+  aggregateDyeCombos(): Promise<AggregatedDyeCombo[]>;
   /** scraper が全完了しているか確認 */
   isCrawlComplete(): Promise<boolean>;
   /** クロール状態を3値で取得 */
@@ -129,6 +147,62 @@ export function createAggregator(deps: AggregatorDependencies): Aggregator {
       }
 
       return allPairs;
+    },
+
+    /**
+     * 装備ごとの染色組み合わせ（stain1×stain2）を集計し rank を採番。
+     * stain1Id / stain2Id は NULL を許容（未染色）。
+     * MIN_COUNT_THRESHOLD 未満は除外。
+     */
+    async aggregateDyeCombos(): Promise<AggregatedDyeCombo[]> {
+      const result = await db.execute(sql`
+        WITH combos AS (
+          SELECT
+            slot_id,
+            item_id,
+            stain1_name,
+            stain2_name,
+            COUNT(*) AS combo_count
+          FROM characters_glamour
+          WHERE item_id NOT IN (${excludedItemsSql()})
+          GROUP BY slot_id, item_id, stain1_name, stain2_name
+          HAVING COUNT(*) >= ${MIN_COUNT_THRESHOLD}
+        ),
+        ranked AS (
+          SELECT
+            slot_id, item_id, stain1_name, stain2_name, combo_count,
+            ROW_NUMBER() OVER (
+              PARTITION BY slot_id, item_id
+              ORDER BY combo_count DESC,
+                       COALESCE(stain1_name, '') ASC,
+                       COALESCE(stain2_name, '') ASC
+            ) AS rank
+          FROM combos
+        )
+        SELECT * FROM ranked
+        ORDER BY slot_id, item_id, rank
+      `);
+
+      // postgres-js の execute は RowList を返すため Array.from で配列に正規化
+      const rows = Array.from(
+        result as unknown as Iterable<{
+          slot_id: string | number;
+          item_id: string;
+          stain1_name: string | null;
+          stain2_name: string | null;
+          combo_count: string | number;
+          rank: string | number;
+        }>,
+      );
+
+      return rows.map((row) => ({
+        slotId: Number(row.slot_id),
+        itemId: row.item_id,
+        stain1Name: row.stain1_name,
+        stain2Name: row.stain2_name,
+        comboCount: Number(row.combo_count),
+        rank: Number(row.rank),
+      }));
     },
 
     /**
@@ -213,14 +287,8 @@ async function aggregateBidirectionalPairs(
       INNER JOIN characters_glamour b ON a.character_id = b.character_id
       WHERE a.slot_id = ${slotA}
         AND b.slot_id = ${slotB}
-        AND a.item_id NOT IN (${sql.join(
-          EXCLUDED_ITEM_IDS.map((id) => sql`${id}`),
-          sql`, `,
-        )})
-        AND b.item_id NOT IN (${sql.join(
-          EXCLUDED_ITEM_IDS.map((id) => sql`${id}`),
-          sql`, `,
-        )})
+        AND a.item_id NOT IN (${excludedItemsSql()})
+        AND b.item_id NOT IN (${excludedItemsSql()})
       GROUP BY a.item_id, b.item_id
       HAVING COUNT(*) >= ${MIN_COUNT_THRESHOLD}
     ),

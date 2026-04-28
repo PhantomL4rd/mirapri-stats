@@ -3,7 +3,14 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import PrivacyRibbon from '../../components/PrivacyRibbon.astro';
 import PartnerList from '../../components/PartnerList.svelte';
 import { ArrowLeft } from 'lucide-svelte';
-import { getItemInfo, getPartnerItems, getDataFreshness, getSimilarItems } from '../../lib/queries';
+import {
+  getItemInfo,
+  getPartnerItems,
+  getDataFreshness,
+  getSimilarItems,
+  getItemDyeCombos,
+} from '../../lib/queries';
+import DyeComboList from '../../components/DyeComboList.astro';
 import { SLOT_NAMES, resolveVersionContext } from '../../lib/db';
 import { versionedHref } from '../../lib/utils';
 
@@ -37,10 +44,11 @@ if (!itemInfo) {
 
 const { versions, currentVersion, linkVersion } = ctx;
 
-const [partnerItems, freshness, similarItems] = await Promise.all([
+const [partnerItems, freshness, similarItems, dyeCombos] = await Promise.all([
   getPartnerItems(db, itemId, 30, currentVersion),
   getDataFreshness(db, currentVersion),
   getSimilarItems(db, itemId, itemInfo.slotId, 3, currentVersion),
+  getItemDyeCombos(db, itemId, currentVersion),
 ]);
 
 const slotName = SLOT_NAMES[itemInfo.slotId] ?? '装備';
@@ -118,6 +126,13 @@ function getLodestoneUrl(id: string): string {
         )
       }
     </div>
+
+    {dyeCombos.length > 0 && (
+      <div class="space-y-3">
+        <h2 class="text-lg font-semibold text-card-foreground">人気の染色組み合わせ</h2>
+        <DyeComboList combos={dyeCombos} />
+      </div>
+    )}
 
     {similarItems.length > 0 && (
       <div class="space-y-3">

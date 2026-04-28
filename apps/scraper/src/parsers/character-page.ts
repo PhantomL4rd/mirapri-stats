@@ -41,17 +41,87 @@ export function parseGlamourData(html: string): GlamourData[] {
     // 部位名をスロット名に変換
     const slot = SLOT_MAPPING[categoryText];
 
+    // 染色情報を抽出
+    const { stain1Name, stain2Name } = extractStains($, $mirage);
+
     // 対象部位のみ追加（itemIdがある場合のみ）
     if (slot && itemId) {
       results.push({
         slot,
         itemId,
         itemName,
+        stain1Name,
+        stain2Name,
       });
     }
   });
 
   return results;
+}
+
+interface StainInfo {
+  stain1Name: string | null;
+  stain2Name: string | null;
+}
+
+/**
+ * 装備カードから染色情報を抽出。
+ *
+ * Lodestone HTML 構造（カードルート: `.db-tooltip`）:
+ * ```
+ * .db-tooltip
+ *   .db-tooltip__item__icon
+ *     .mirage_staining(--N) (.no_paint | .painted_cover)        ← 主染色スロット
+ *     .stain2-mirage > .mirage_staining(--N) (.no_paint | ...)  ← 副染色スロット
+ *   .list_1col
+ *     .stain a[href="/lodestone/playguide/db/item/{id}/"]       ← 染色済みのみ、主→副の順
+ * ```
+ *
+ * `.stain` は染色済みスロットのみ並ぶため、主/副の判別には
+ * `.mirage_staining` の `painted_cover` の有無を見る必要がある。
+ */
+function extractStains($: cheerio.CheerioAPI, $mirage: ReturnType<cheerio.CheerioAPI>): StainInfo {
+  const empty: StainInfo = { stain1Name: null, stain2Name: null };
+
+  const $tooltip = $mirage.closest('.db-tooltip');
+  if ($tooltip.length === 0) return empty;
+
+  const $icon = $tooltip.find('.db-tooltip__item__icon').first();
+
+  // 副染色スロットは .stain2-mirage 配下、主染色スロットは .stain2-mirage の外
+  const $sub = $icon.find('.stain2-mirage [class*="mirage_staining"]').first();
+  const $main = $icon
+    .find('[class*="mirage_staining"]')
+    .filter((_, el) => $(el).closest('.stain2-mirage').length === 0)
+    .first();
+
+  const mainPainted = $main.length > 0 && $main.hasClass('painted_cover');
+  const subPainted = $sub.length > 0 && $sub.hasClass('painted_cover');
+
+  const stainNames: (string | null)[] = [];
+  $tooltip.find('.list_1col .stain a').each((_, a) => {
+    stainNames.push(extractStainName($(a).text()));
+  });
+
+  // .stain は painted のスロットのみ、主→副の順で並ぶ
+  let next = 0;
+  const result: StainInfo = { ...empty };
+  if (mainPainted) result.stain1Name = stainNames[next++] ?? null;
+  if (subPainted) result.stain2Name = stainNames[next++] ?? null;
+
+  return result;
+}
+
+/**
+ * カララントリンクのテキストから色名を抽出
+ * 例: "カララント:ロイヤルブルー" → "ロイヤルブルー"
+ * プレフィックス無しの想定外テキストは null を返す（防御的）
+ */
+function extractStainName(text: string): string | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(/^カララント[:：]\s*(.+)$/);
+  return match?.[1] ?? null;
 }
 
 /**

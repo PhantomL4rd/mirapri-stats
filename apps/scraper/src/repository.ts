@@ -59,6 +59,8 @@ export function createGlamourRepository(db: Database): GlamourRepository {
           characterId,
           slotId: SLOT_IDS[d.slot],
           itemId: d.itemId as string, // nullはフィルタリング済み
+          stain1Name: d.stain1Name,
+          stain2Name: d.stain2Name,
         }));
 
         await db.insert(charactersGlamour).values(records);

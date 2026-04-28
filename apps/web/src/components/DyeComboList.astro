@@ -1,0 +1,75 @@
+---
+import type { DyeComboResult } from '../lib/queries';
+
+interface Props {
+  combos: DyeComboResult[];
+}
+
+const { combos } = Astro.props;
+
+function rgbStyle(rgb: { r: number; g: number; b: number } | null): string {
+  if (!rgb) return '';
+  return `background-color: rgb(${rgb.r}, ${rgb.g}, ${rgb.b});`;
+}
+---
+
+<div class="space-y-2">
+  {
+    combos.length === 0 ? (
+      <p class="text-center text-muted-foreground py-6 text-sm">
+        この装備の染色組み合わせデータはまだありません
+      </p>
+    ) : (
+      <ol class="space-y-2">
+        {combos.map((c) => (
+            <li class="flex items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-sm">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-3 text-sm">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs text-muted-foreground">主</span>
+                    {c.stain1Rgb ? (
+                      <span
+                        class="inline-block size-4 rounded border border-border/60"
+                        style={rgbStyle(c.stain1Rgb)}
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <span
+                        class="inline-block size-4 rounded border border-dashed border-muted-foreground/40"
+                        aria-hidden="true"
+                      />
+                    )}
+                    <span class={c.stain1Name ? 'font-medium' : 'text-muted-foreground'}>
+                      {c.stain1Name ?? '未染色'}
+                    </span>
+                  </div>
+                  <span class="text-muted-foreground">/</span>
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs text-muted-foreground">副</span>
+                    {c.stain2Rgb ? (
+                      <span
+                        class="inline-block size-4 rounded border border-border/60"
+                        style={rgbStyle(c.stain2Rgb)}
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <span
+                        class="inline-block size-4 rounded border border-dashed border-muted-foreground/40"
+                        aria-hidden="true"
+                      />
+                    )}
+                    <span class={c.stain2Name ? 'font-medium' : 'text-muted-foreground'}>
+                      {c.stain2Name ?? '未染色'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 text-xs tabular-nums text-muted-foreground">
+                <span>{c.comboCount}人</span>
+              </div>
+            </li>
+          ))}
+      </ol>
+    )
+  }
+</div>

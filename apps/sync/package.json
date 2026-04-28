@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx src/index.ts",
+    "dye-master": "tsx src/dye-master-sync.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "vitest run",

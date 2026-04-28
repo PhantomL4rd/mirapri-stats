@@ -35,6 +35,10 @@ export const charactersGlamour = pgTable(
     slotId: smallint('slot_id').notNull(),
     /** Lodestone装備ID（URLは /lodestone/playguide/db/item/{itemId}/ で再構築） */
     itemId: varchar('item_id', { length: 20 }).notNull(),
+    /** 主染色のJP名（NULL = 未染色、stains.name と一致） */
+    stain1Name: varchar('stain1_name', { length: 100 }),
+    /** 副染色のJP名（NULL = 未染色、stains.name と一致） */
+    stain2Name: varchar('stain2_name', { length: 100 }),
     /** 取得日時 */
     fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
   },

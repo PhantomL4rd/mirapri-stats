@@ -5,6 +5,8 @@ export interface SyncOptions {
   itemsOnly: boolean;
   statsOnly: boolean;
   dryRun: boolean;
+  /** 同期成功後の Supabase クリーンアップをスキップ（動作確認期間用、省略時 false） */
+  skipCleanup?: boolean;
 }
 
 /**
@@ -15,6 +17,7 @@ export interface SyncResult {
   itemsSkipped: number;
   usageInserted: number;
   pairsInserted: number;
+  dyeCombosInserted: number;
   errors: string[];
 }
 
@@ -22,7 +25,7 @@ export interface SyncResult {
  * 進捗情報
  */
 export interface SyncProgress {
-  phase: 'items' | 'usage' | 'pairs' | 'cleanup';
+  phase: 'items' | 'usage' | 'pairs' | 'dye_combos' | 'cleanup';
   processed: number;
   total: number;
   errors: number;
@@ -45,6 +48,34 @@ export interface AggregatedUsage {
   slotId: number;
   itemId: string;
   usageCount: number;
+}
+
+/**
+ * 集計された染色組み合わせ
+ */
+export interface AggregatedDyeCombo {
+  slotId: number;
+  itemId: string;
+  /** 主染色JP名（null = 未染色） */
+  stain1Name: string | null;
+  /** 副染色JP名（null = 未染色） */
+  stain2Name: string | null;
+  comboCount: number;
+  rank: number;
+}
+
+/**
+ * カララント情報（dyes.json + ja/dye.json から取得）
+ */
+export interface StainInfo {
+  /** JP名（PK） */
+  name: string;
+  /** colorant-picker 内部ID（dye_NNN、traceability 用） */
+  dyeId: string | null;
+  category: string | null;
+  r: number;
+  g: number;
+  b: number;
 }
 
 /**
@@ -80,6 +111,8 @@ export interface WriterClientConfig {
     items?: number;
     usage?: number;
     pairs?: number;
+    dyeCombos?: number;
+    stains?: number;
   };
 }
 

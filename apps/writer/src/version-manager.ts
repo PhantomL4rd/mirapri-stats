@@ -1,4 +1,4 @@
-import { pairs, syncVersions, usage } from '@mirapri/shared/d1-schema';
+import { itemDyeCombos, pairs, syncVersions, usage } from '@mirapri/shared/d1-schema';
 import { desc, eq, notInArray } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 
@@ -74,6 +74,7 @@ export function createVersionManager(deps: VersionManagerDependencies): VersionM
     async abortSync(version: string): Promise<void> {
       await db.delete(usage).where(eq(usage.version, version));
       await db.delete(pairs).where(eq(pairs.version, version));
+      await db.delete(itemDyeCombos).where(eq(itemDyeCombos.version, version));
     },
 
     async cleanupOldVersions(): Promise<void> {
@@ -95,9 +96,10 @@ export function createVersionManager(deps: VersionManagerDependencies): VersionM
       const versionsToDelete = allVersions.slice(VERSIONS_TO_KEEP).map((v) => v.version);
 
       if (versionsToDelete.length > 0) {
-        // usage, pairs, sync_versions から削除
+        // usage, pairs, item_dye_combos, sync_versions から削除
         await db.delete(usage).where(notInArray(usage.version, versionsToKeep));
         await db.delete(pairs).where(notInArray(pairs.version, versionsToKeep));
+        await db.delete(itemDyeCombos).where(notInArray(itemDyeCombos.version, versionsToKeep));
         await db.delete(syncVersions).where(notInArray(syncVersions.version, versionsToKeep));
       }
     },

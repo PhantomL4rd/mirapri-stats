@@ -18,6 +18,12 @@ async function runMigrations(db: D1Database) {
     db.prepare(
       `CREATE TABLE IF NOT EXISTS sync_versions (version TEXT PRIMARY KEY, data_from TEXT, data_to TEXT, synced_at TEXT NOT NULL)`,
     ),
+    db.prepare(
+      `CREATE TABLE IF NOT EXISTS stains (name TEXT PRIMARY KEY, dye_id TEXT, category TEXT, r INTEGER NOT NULL, g INTEGER NOT NULL, b INTEGER NOT NULL)`,
+    ),
+    db.prepare(
+      `CREATE TABLE IF NOT EXISTS item_dye_combos (version TEXT NOT NULL, slot_id INTEGER NOT NULL, item_id TEXT NOT NULL, stain1_name TEXT, stain2_name TEXT, combo_count INTEGER NOT NULL CHECK (combo_count >= 3), rank INTEGER NOT NULL, PRIMARY KEY (version, slot_id, item_id, rank))`,
+    ),
   ]);
 }
 
@@ -436,6 +442,117 @@ describe('POST /api/pairs', () => {
     expect(response.status).toBe(400);
     const body = await response.json();
     expect(body.error).toContain('rank');
+  });
+});
+
+describe('Stains Route', () => {
+  beforeAll(async () => {
+    await runMigrations(env.DB);
+  });
+
+  it('UPSERT 1件のカララントを保存し 200 を返す', async () => {
+    const ctx = createExecutionContext();
+    const response = await app.fetch(
+      new Request('http://localhost/api/stains', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${AUTH_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stains: [
+            { name: 'テスト白', dyeId: 'dye_TEST', category: 'white', r: 255, g: 255, b: 250 },
+          ],
+        }),
+      }),
+      { ...env, AUTH_TOKEN },
+      ctx,
+    );
+    await waitOnExecutionContext(ctx);
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.success).toBe(true);
+  });
+
+  it('rgb 範囲外は 400', async () => {
+    const ctx = createExecutionContext();
+    const response = await app.fetch(
+      new Request('http://localhost/api/stains', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${AUTH_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stains: [{ name: 'X', r: 999, g: 0, b: 0 }] }),
+      }),
+      { ...env, AUTH_TOKEN },
+      ctx,
+    );
+    await waitOnExecutionContext(ctx);
+    expect(response.status).toBe(400);
+  });
+});
+
+describe('Dye Combos Route', () => {
+  beforeAll(async () => {
+    await runMigrations(env.DB);
+  });
+
+  it('comboCount >= 3 の組み合わせを保存し 200 を返す', async () => {
+    const ctx = createExecutionContext();
+    const response = await app.fetch(
+      new Request('http://localhost/api/dye-combos?version=v-test-1', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${AUTH_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          combos: [
+            {
+              slotId: 1,
+              itemId: 'item-test-1',
+              stain1Name: 'ロイヤルブルー',
+              stain2Name: null,
+              comboCount: 5,
+              rank: 1,
+            },
+          ],
+        }),
+      }),
+      { ...env, AUTH_TOKEN },
+      ctx,
+    );
+    await waitOnExecutionContext(ctx);
+    expect(response.status).toBe(200);
+  });
+
+  it('comboCount < 3 は k-anonymity 違反として 400', async () => {
+    const ctx = createExecutionContext();
+    const response = await app.fetch(
+      new Request('http://localhost/api/dye-combos?version=v-test-2', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${AUTH_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          combos: [
+            { slotId: 1, itemId: 'x', stain1Name: 'r', stain2Name: null, comboCount: 2, rank: 1 },
+          ],
+        }),
+      }),
+      { ...env, AUTH_TOKEN },
+      ctx,
+    );
+    await waitOnExecutionContext(ctx);
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toContain('k-anonymity');
+  });
+
+  it('version クエリ無しは 400', async () => {
+    const ctx = createExecutionContext();
+    const response = await app.fetch(
+      new Request('http://localhost/api/dye-combos', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${AUTH_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ combos: [] }),
+      }),
+      { ...env, AUTH_TOKEN },
+      ctx,
+    );
+    await waitOnExecutionContext(ctx);
+    expect(response.status).toBe(400);
   });
 });
 

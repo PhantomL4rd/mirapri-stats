@@ -1,8 +1,10 @@
 import { chunk } from '@mirapri/shared/utils';
 import type {
+  AggregatedDyeCombo,
   AggregatedPair,
   AggregatedUsage,
   ExtractedItem,
+  StainInfo,
   WriterClientConfig,
   WriterResponse,
 } from './types.js';
@@ -17,6 +19,8 @@ const DEFAULT_CHUNK_SIZES = {
   items: DEFAULT_CHUNK_SIZE,
   usage: DEFAULT_CHUNK_SIZE,
   pairs: DEFAULT_CHUNK_SIZE,
+  dyeCombos: DEFAULT_CHUNK_SIZE,
+  stains: DEFAULT_CHUNK_SIZE,
 };
 
 /**
@@ -55,6 +59,10 @@ export interface WriterClient {
   postUsage(version: string, usage: AggregatedUsage[]): Promise<{ inserted: number }>;
   /** pairs 送信（バージョン付き、INSERT） */
   postPairs(version: string, pairs: AggregatedPair[]): Promise<{ inserted: number }>;
+  /** dye combos 送信（バージョン付き、INSERT） */
+  postDyeCombos(version: string, combos: AggregatedDyeCombo[]): Promise<{ inserted: number }>;
+  /** stains 送信（UPSERT、バージョンなし） */
+  postStains(stains: StainInfo[]): Promise<{ inserted: number }>;
 }
 
 /**
@@ -274,6 +282,94 @@ export function createWriterClient(config: WriterClientConfig): WriterClient {
         if (!response.ok) {
           const errorBody = await response.text();
           throw new Error(`Failed to post usage: ${response.status} - ${errorBody}`);
+        }
+
+        const result = (await response.json()) as WriterResponse;
+        const elapsed = Date.now() - startTime;
+        console.log(`[Writer] Batch ${i + 1}/${chunks.length} completed in ${elapsed}ms`);
+        return result;
+      });
+
+      let totalInserted = 0;
+      for (const result of results) {
+        totalInserted += result.inserted ?? 0;
+      }
+      return { inserted: totalInserted };
+    },
+
+    async postDyeCombos(
+      version: string,
+      combos: AggregatedDyeCombo[],
+    ): Promise<{ inserted: number }> {
+      const chunks = chunk(combos, chunkSizes.dyeCombos);
+      const results = await mapWithConcurrency(chunks, concurrency, async (batch, i) => {
+        const startTime = Date.now();
+        console.log(
+          `[Writer] Posting dye-combos batch ${i + 1}/${chunks.length} (${batch.length} records)...`,
+        );
+
+        const url = new URL('/api/dye-combos', config.baseUrl);
+        url.searchParams.set('version', version);
+        const response = await fetchWithRetry(url.toString(), {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({
+            combos: batch.map((c) => ({
+              slotId: c.slotId,
+              itemId: c.itemId,
+              stain1Name: c.stain1Name,
+              stain2Name: c.stain2Name,
+              comboCount: c.comboCount,
+              rank: c.rank,
+            })),
+          }),
+        });
+
+        if (!response.ok) {
+          const errorBody = await response.text();
+          throw new Error(`Failed to post dye-combos: ${response.status} - ${errorBody}`);
+        }
+
+        const result = (await response.json()) as WriterResponse;
+        const elapsed = Date.now() - startTime;
+        console.log(`[Writer] Batch ${i + 1}/${chunks.length} completed in ${elapsed}ms`);
+        return result;
+      });
+
+      let totalInserted = 0;
+      for (const result of results) {
+        totalInserted += result.inserted ?? 0;
+      }
+      return { inserted: totalInserted };
+    },
+
+    async postStains(stains: StainInfo[]): Promise<{ inserted: number }> {
+      const chunks = chunk(stains, chunkSizes.stains);
+      const results = await mapWithConcurrency(chunks, concurrency, async (batch, i) => {
+        const startTime = Date.now();
+        console.log(
+          `[Writer] Posting stains batch ${i + 1}/${chunks.length} (${batch.length} records)...`,
+        );
+
+        const url = new URL('/api/stains', config.baseUrl);
+        const response = await fetchWithRetry(url.toString(), {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({
+            stains: batch.map((s) => ({
+              name: s.name,
+              dyeId: s.dyeId,
+              category: s.category,
+              r: s.r,
+              g: s.g,
+              b: s.b,
+            })),
+          }),
+        });
+
+        if (!response.ok) {
+          const errorBody = await response.text();
+          throw new Error(`Failed to post stains: ${response.status} - ${errorBody}`);
         }
 
         const result = (await response.json()) as WriterResponse;

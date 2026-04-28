@@ -23,11 +23,13 @@ program
   .option('--items-only', 'Sync only items master data', false)
   .option('--stats-only', 'Sync only statistics (usage, pairs)', false)
   .option('--dry-run', 'Show what would be synced without actually syncing', false)
+  .option('--skip-cleanup', 'Skip Supabase cleanup after sync (verification period)', false)
   .action(async (opts) => {
     const options: SyncOptions = {
       itemsOnly: opts.itemsOnly ?? false,
       statsOnly: opts.statsOnly ?? false,
       dryRun: opts.dryRun ?? false,
+      skipCleanup: opts.skipCleanup ?? false,
     };
 
     const databaseUrl = getEnv('DATABASE_URL');
@@ -43,6 +45,7 @@ program
     console.log(`  - items-only: ${options.itemsOnly}`);
     console.log(`  - stats-only: ${options.statsOnly}`);
     console.log(`  - dry-run: ${options.dryRun}`);
+    console.log(`  - skip-cleanup: ${options.skipCleanup}`);
     console.log(`  - cf-access: ${hasCfAccess ? 'enabled' : 'disabled'}`);
     console.log();
 
@@ -77,6 +80,7 @@ program
       console.log(`Items: ${result.itemsInserted} inserted, ${result.itemsSkipped} skipped`);
       console.log(`Usage: ${result.usageInserted} inserted`);
       console.log(`Pairs: ${result.pairsInserted} inserted`);
+      console.log(`DyeCombos: ${result.dyeCombosInserted} inserted`);
 
       if (result.errors.length > 0) {
         console.log();

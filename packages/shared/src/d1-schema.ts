@@ -1,4 +1,5 @@
-import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
+import { check, index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 /**
  * アイテムマスタテーブル
@@ -160,3 +161,65 @@ export type UsageTrend = typeof usageTrends.$inferSelect;
 
 /** INSERT時の型 */
 export type NewUsageTrend = typeof usageTrends.$inferInsert;
+
+/**
+ * カララント（染色）マスタ
+ * PK は JP色名（Lodestone HTML から scraper が取得する公式日本語名）。
+ * dye_id は colorant-picker 内部ID（dye_NNN）で traceability のみ。
+ */
+export const stains = sqliteTable('stains', {
+  /** カララントJP名（主キー、Lodestone "カララント:{name}" と完全一致） */
+  name: text('name').primaryKey(),
+  /** colorant-picker 内部ID（dye_NNN、traceability 用） */
+  dyeId: text('dye_id'),
+  /** カテゴリ（white/red/.../rare 等） */
+  category: text('category'),
+  /** RGB赤 */
+  r: integer('r').notNull(),
+  /** RGB緑 */
+  g: integer('g').notNull(),
+  /** RGB青 */
+  b: integer('b').notNull(),
+});
+
+/** SELECT時の型 */
+export type Stain = typeof stains.$inferSelect;
+
+/** INSERT時の型 */
+export type NewStain = typeof stains.$inferInsert;
+
+/**
+ * 装備の染色組み合わせ集計（バージョン管理対象）
+ * stain1_id / stain2_id は NULL = 未染色
+ * 同一 (version, item_id) 内で combo_count DESC 順に rank を採番
+ */
+export const itemDyeCombos = sqliteTable(
+  'item_dye_combos',
+  {
+    /** バージョン識別子 */
+    version: text('version').notNull(),
+    /** 部位ID */
+    slotId: integer('slot_id').notNull(),
+    /** 装備ID */
+    itemId: text('item_id').notNull(),
+    /** 主染色のJP名（NULL = 未染色、stains.name と JOIN） */
+    stain1Name: text('stain1_name'),
+    /** 副染色のJP名（NULL = 未染色、stains.name と JOIN） */
+    stain2Name: text('stain2_name'),
+    /** 組み合わせ出現回数（k=3 匿名化のため 3 以上） */
+    comboCount: integer('combo_count').notNull(),
+    /** ランク（1〜、combo_count DESC順） */
+    rank: integer('rank').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.version, table.slotId, table.itemId, table.rank] }),
+    index('idx_dye_combos_lookup').on(table.version, table.itemId),
+    check('item_dye_combos_k_anonymity', sql`${table.comboCount} >= 3`),
+  ],
+);
+
+/** SELECT時の型 */
+export type ItemDyeCombo = typeof itemDyeCombos.$inferSelect;
+
+/** INSERT時の型 */
+export type NewItemDyeCombo = typeof itemDyeCombos.$inferInsert;

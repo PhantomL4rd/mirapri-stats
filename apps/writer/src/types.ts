@@ -75,6 +75,56 @@ export interface PairsResponse {
 }
 
 /**
+ * POST /api/stains リクエスト
+ * カララント（染色）マスタを一括 UPSERT
+ */
+export interface StainsRequest {
+  stains: Array<{
+    /** JP色名（PK） */
+    name: string;
+    /** colorant-picker 内部ID（dye_NNN、traceability 用） */
+    dyeId?: string | null;
+    category?: string | null;
+    r: number;
+    g: number;
+    b: number;
+  }>;
+}
+
+/**
+ * POST /api/stains レスポンス
+ */
+export interface StainsResponse {
+  success: boolean;
+  inserted: number;
+}
+
+/**
+ * POST /api/dye-combos リクエスト
+ * Query: ?version=xxx (必須)
+ */
+export interface DyeCombosRequest {
+  combos: Array<{
+    slotId: number;
+    itemId: string;
+    /** 主染色JP名（null = 未染色） */
+    stain1Name: string | null;
+    /** 副染色JP名（null = 未染色） */
+    stain2Name: string | null;
+    comboCount: number;
+    rank: number;
+  }>;
+}
+
+/**
+ * POST /api/dye-combos レスポンス
+ */
+export interface DyeCombosResponse {
+  success: boolean;
+  inserted: number;
+}
+
+/**
  * POST /api/sync/start レスポンス
  */
 export interface SyncStartResponse {
