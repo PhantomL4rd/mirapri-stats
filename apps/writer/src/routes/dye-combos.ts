@@ -36,9 +36,8 @@ dyeCombosRoute.post('/', async (c) => {
     if (combo.stain2Name !== null && typeof combo.stain2Name !== 'string') {
       return c.json({ error: 'stain2Name must be a string or null' }, 400);
     }
-    // k-anonymity hard requirement: 3人未満の組み合わせは絶対に保存しない
-    if (typeof combo.comboCount !== 'number' || combo.comboCount < 3) {
-      return c.json({ error: 'comboCount must be >= 3 (k-anonymity)' }, 400);
+    if (typeof combo.comboCount !== 'number' || combo.comboCount < 0) {
+      return c.json({ error: 'comboCount must be non-negative' }, 400);
     }
     if (typeof combo.rank !== 'number' || combo.rank < 1) {
       return c.json({ error: 'rank must be positive' }, 400);

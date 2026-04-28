@@ -22,7 +22,7 @@ async function runMigrations(db: D1Database) {
       `CREATE TABLE IF NOT EXISTS stains (name TEXT PRIMARY KEY, dye_id TEXT, category TEXT, r INTEGER NOT NULL, g INTEGER NOT NULL, b INTEGER NOT NULL)`,
     ),
     db.prepare(
-      `CREATE TABLE IF NOT EXISTS item_dye_combos (version TEXT NOT NULL, slot_id INTEGER NOT NULL, item_id TEXT NOT NULL, stain1_name TEXT, stain2_name TEXT, combo_count INTEGER NOT NULL CHECK (combo_count >= 3), rank INTEGER NOT NULL, PRIMARY KEY (version, slot_id, item_id, rank))`,
+      `CREATE TABLE IF NOT EXISTS item_dye_combos (version TEXT NOT NULL, slot_id INTEGER NOT NULL, item_id TEXT NOT NULL, stain1_name TEXT, stain2_name TEXT, combo_count INTEGER NOT NULL, rank INTEGER NOT NULL, PRIMARY KEY (version, slot_id, item_id, rank))`,
     ),
   ]);
 }
@@ -493,7 +493,7 @@ describe('Dye Combos Route', () => {
     await runMigrations(env.DB);
   });
 
-  it('comboCount >= 3 の組み合わせを保存し 200 を返す', async () => {
+  it('組み合わせを保存し 200 を返す', async () => {
     const ctx = createExecutionContext();
     const response = await app.fetch(
       new Request('http://localhost/api/dye-combos?version=v-test-1', {
@@ -519,7 +519,7 @@ describe('Dye Combos Route', () => {
     expect(response.status).toBe(200);
   });
 
-  it('comboCount < 3 は k-anonymity 違反として 400', async () => {
+  it('負の comboCount は 400', async () => {
     const ctx = createExecutionContext();
     const response = await app.fetch(
       new Request('http://localhost/api/dye-combos?version=v-test-2', {
@@ -527,7 +527,7 @@ describe('Dye Combos Route', () => {
         headers: { Authorization: `Bearer ${AUTH_TOKEN}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           combos: [
-            { slotId: 1, itemId: 'x', stain1Name: 'r', stain2Name: null, comboCount: 2, rank: 1 },
+            { slotId: 1, itemId: 'x', stain1Name: 'r', stain2Name: null, comboCount: -1, rank: 1 },
           ],
         }),
       }),
@@ -536,8 +536,6 @@ describe('Dye Combos Route', () => {
     );
     await waitOnExecutionContext(ctx);
     expect(response.status).toBe(400);
-    const body = await response.json();
-    expect(body.error).toContain('k-anonymity');
   });
 
   it('version クエリ無しは 400', async () => {

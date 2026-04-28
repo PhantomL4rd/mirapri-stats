@@ -1,5 +1,4 @@
-import { sql } from 'drizzle-orm';
-import { check, index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 /**
  * アイテムマスタテーブル
@@ -206,7 +205,7 @@ export const itemDyeCombos = sqliteTable(
     stain1Name: text('stain1_name'),
     /** 副染色のJP名（NULL = 未染色、stains.name と JOIN） */
     stain2Name: text('stain2_name'),
-    /** 組み合わせ出現回数（k=3 匿名化のため 3 以上） */
+    /** 組み合わせ出現回数 */
     comboCount: integer('combo_count').notNull(),
     /** ランク（1〜、combo_count DESC順） */
     rank: integer('rank').notNull(),
@@ -214,7 +213,6 @@ export const itemDyeCombos = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.version, table.slotId, table.itemId, table.rank] }),
     index('idx_dye_combos_lookup').on(table.version, table.itemId),
-    check('item_dye_combos_k_anonymity', sql`${table.comboCount} >= 3`),
   ],
 );
 

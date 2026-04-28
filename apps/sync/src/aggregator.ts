@@ -165,6 +165,8 @@ export function createAggregator(deps: AggregatorDependencies): Aggregator {
             COUNT(*) AS combo_count
           FROM characters_glamour
           WHERE item_id NOT IN (${excludedItemsSql()})
+            -- 未染色×未染色は「染色組み合わせ」として無価値なので除外
+            AND NOT (stain1_name IS NULL AND stain2_name IS NULL)
           GROUP BY slot_id, item_id, stain1_name, stain2_name
           HAVING COUNT(*) >= ${MIN_COUNT_THRESHOLD}
         ),
