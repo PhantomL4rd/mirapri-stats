@@ -15,6 +15,7 @@
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --color-banner: var(--banner);
+  --color-banner-foreground: var(--banner-foreground);
   --color-rank-up: var(--rank-up);
   --color-rank-down: var(--rank-down);
   --color-destructive: var(--destructive);
@@ -43,6 +44,7 @@
   /* Semantic accents (no yellow) */
   --ctp-peach: oklch(0.700 0.150 50);
   --ctp-blue: oklch(0.546 0.214 263);
+  --ctp-sky: oklch(0.690 0.126 232);
   --ctp-green: oklch(0.617 0.171 142);
   --ctp-red: oklch(0.553 0.214 22);
 
@@ -61,7 +63,8 @@
 
   --warning: var(--ctp-peach);
   --warning-foreground: var(--ctp-base);
-  --banner: var(--ctp-blue);
+  --banner: var(--ctp-sky);
+  --banner-foreground: var(--ctp-base);
   --rank-up: var(--ctp-green);
   --rank-down: var(--ctp-red);
   --destructive: var(--ctp-red);
@@ -88,6 +91,7 @@
 
     --ctp-peach: oklch(0.804 0.103 47);
     --ctp-blue: oklch(0.727 0.117 251);
+    --ctp-sky: oklch(0.854 0.058 218);
     --ctp-green: oklch(0.834 0.122 144);
     --ctp-red: oklch(0.737 0.131 12);
   }
